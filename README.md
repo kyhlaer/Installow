@@ -1,4 +1,4 @@
-# 🔍 Installow - by Kyhlaer
+# 🕵🏻 Installow - by Kyhlaer
 
 Gizlilik odaklı, modern ve güvenli Instagram takip analiz Android uygulaması.
 
