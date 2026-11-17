@@ -10,10 +10,12 @@
   - Panel ve Kişiler ekranlarındaki üst yuvarlak butonların (`12.dp` aralık, `40.dp` boyut) birbirine yapışma sorunu giderildi; veri yükleme/çekme ikonu indirme ikonuyla (`Download`) yenilendi.
   - Panel üst başlığına küçük **`by kyhlaer`** imzası eklendi; Son Değişimler kartına **Senin Bıraktıkların** satırı eklendi.
   - Kişiler ekranına **Tümü / Notlular / Yakın Arkadaşlar** hızlı filtre çipleri ve kişi detay kartına tek dokunuşla `@kullanıcı_adı` kopyalama düğmesi eklendi.
-- **İngilizce Dil Desteği (Bilingual TR / EN / System):**
-  - Uygulama genelindeki tüm ekranlar, diyaloglar, hata/durum mesajları, etiketler, sıralama seçenekleri ve güvenlik denetimi sonuçları için tam **İngilizce** ve **Türkçe** desteği eklendi.
-  - Varsayılan olarak cihaz diline uyum sağlayan `SYSTEM` seçeneği ile birlikte **Ayarlar** sekmesine anlık **`Dil / Language`** kontrolü eklendi (`Türkçe` · `English` · `Sistem`).
-  - Takipçi sayısı kısaltmaları (`B` / `K`), tarih formatları, son 6 ay grafik etiketleri ve CSV dışa aktarma başlıkları seçilen dile göre güncellenir.
+- **Çoklu Dil Desteği (TR / EN / DE / FR / ES / Sistem):**
+  - Uygulama genelindeki tüm ekranlar, diyaloglar, hata/durum mesajları, etiketler, sıralama seçenekleri ve güvenlik denetimi sonuçları için **Türkçe**, **İngilizce**, **Almanca**, **Fransızca** ve **İspanyolca** desteği eklendi.
+  - Varsayılan olarak cihaz diline uyum sağlayan `SYSTEM` seçeneği ile birlikte **Ayarlar** sekmesine anlık **`Dil / Language`** seçici eklendi.
+  - Takipçi sayısı kısaltmaları, tarih formatları, son 6 ay grafik etiketleri ve CSV dışa aktarma başlıkları seçilen dile göre güncellenir.
+- **Kullanıcı Adından Doğrudan Veri Çekme İyileştirmesi:**
+  - Instagram'ın anonim API sınırlandırmalarını aşmak için güvenli SSR OpenGraph/JSON HTML ayrıştırıcısı, HTML entity (`&#064;`, `&#x2022;`) çözücü, profil URL/kullanıcı adı temizleyici ve hesap penceresi içi hata gösterimi eklendi.
 - **Uygulama İçi Sürüm Notları:** Ayarlar ekranına **Sürüm Notları (v1.33)** seçeneği eklendi.
 
 ## v1.32

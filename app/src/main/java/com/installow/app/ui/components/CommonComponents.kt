@@ -474,11 +474,21 @@ private fun LegendDot(color: Color, text: String) {
 }
 
 private val TR_LOCALE = Locale("tr", "TR")
+private val ES_LOCALE = Locale("es", "ES")
 private val DATE_FORMATTER_TR: DateTimeFormatter = DateTimeFormatter
     .ofPattern("d MMM yyyy", TR_LOCALE)
     .withZone(ZoneId.systemDefault())
 private val DATE_FORMATTER_EN: DateTimeFormatter = DateTimeFormatter
     .ofPattern("MMM d, yyyy", Locale.US)
+    .withZone(ZoneId.systemDefault())
+private val DATE_FORMATTER_DE: DateTimeFormatter = DateTimeFormatter
+    .ofPattern("d. MMM yyyy", Locale.GERMANY)
+    .withZone(ZoneId.systemDefault())
+private val DATE_FORMATTER_FR: DateTimeFormatter = DateTimeFormatter
+    .ofPattern("d MMM yyyy", Locale.FRANCE)
+    .withZone(ZoneId.systemDefault())
+private val DATE_FORMATTER_ES: DateTimeFormatter = DateTimeFormatter
+    .ofPattern("d MMM yyyy", ES_LOCALE)
     .withZone(ZoneId.systemDefault())
 
 fun formatFollowerCount(count: Long, language: AppLanguage): String {
@@ -487,6 +497,24 @@ fun formatFollowerCount(count: Long, language: AppLanguage): String {
             count >= 1_000_000L -> String.format(TR_LOCALE, "%.1fM", count / 1_000_000.0).replace(",0M", "M")
             count >= 10_000L -> String.format(TR_LOCALE, "%.1fB", count / 1_000.0).replace(",0B", "B")
             count >= 1_000L -> String.format(TR_LOCALE, "%,d", count)
+            else -> count.toString()
+        }
+        AppLanguage.DE -> when {
+            count >= 1_000_000L -> String.format(Locale.GERMANY, "%.1f Mio", count / 1_000_000.0).replace(",0 Mio", " Mio")
+            count >= 10_000L -> String.format(Locale.GERMANY, "%.1fK", count / 1_000.0).replace(",0K", "K")
+            count >= 1_000L -> String.format(Locale.GERMANY, "%,d", count)
+            else -> count.toString()
+        }
+        AppLanguage.FR -> when {
+            count >= 1_000_000L -> String.format(Locale.FRANCE, "%.1f M", count / 1_000_000.0).replace(",0 M", " M")
+            count >= 10_000L -> String.format(Locale.FRANCE, "%.1f k", count / 1_000.0).replace(",0 k", " k")
+            count >= 1_000L -> String.format(Locale.FRANCE, "%,d", count)
+            else -> count.toString()
+        }
+        AppLanguage.ES -> when {
+            count >= 1_000_000L -> String.format(ES_LOCALE, "%.1f M", count / 1_000_000.0).replace(",0 M", " M")
+            count >= 10_000L -> String.format(ES_LOCALE, "%.1f mil", count / 1_000.0).replace(",0 mil", " mil")
+            count >= 1_000L -> String.format(ES_LOCALE, "%,d", count)
             else -> count.toString()
         }
         AppLanguage.EN -> when {
@@ -500,7 +528,13 @@ fun formatFollowerCount(count: Long, language: AppLanguage): String {
 
 fun formatEpochSeconds(epochSec: Long?, strings: com.installow.app.ui.i18n.AppStrings): String {
     if (epochSec == null || epochSec <= 0L) return strings.dateUnknown
-    val formatter = if (strings.language == AppLanguage.TR) DATE_FORMATTER_TR else DATE_FORMATTER_EN
+    val formatter = when (strings.language) {
+        AppLanguage.TR -> DATE_FORMATTER_TR
+        AppLanguage.DE -> DATE_FORMATTER_DE
+        AppLanguage.FR -> DATE_FORMATTER_FR
+        AppLanguage.ES -> DATE_FORMATTER_ES
+        AppLanguage.EN -> DATE_FORMATTER_EN
+    }
     val formatted = formatter.format(Instant.ofEpochSecond(epochSec))
     val rel = formatRelativeTime(epochSec * 1000L, strings)
     return "$formatted · $rel"

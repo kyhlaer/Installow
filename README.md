@@ -1,52 +1,39 @@
-# 🕵🏻 Installow - by Kyhlaer
+# 🔍 Installow - by Kyhlaer
 
-**Sürüm `1.33`** · Gizlilik odaklı, modern ve güvenli Instagram takip analiz Android uygulaması.
+Gizlilik odaklı, modern ve güvenli Instagram takip analiz Android uygulaması.
 
-> 📲 **İndir:** Hazır APK dosyası için [Releases (v1.33)](https://github.com/kyhlaer/Installow/releases/tag/v1.33) sayfasını ziyaret edebilirsiniz.
+> 📲 **İndir:** En güncel APK dosyası için [Sürümler (v1.33)](https://github.com/kyhlaer/Installow/releases/tag/v1.33) sayfasını ziyaret edebilirsiniz.
 
 ---
 
 ## ✨ Özellikler
 
-- 👥 **Kapsamlı Bağlantı Analizi:** Seni takip etmeyenler, senin takip etmediklerin (hayranlar), karşılıklı takipler, bekleyen istekler ve beyaz liste tek ekranda.
-- 🔀 **Çoklu Hesap & Anında Profil Sorgulama:** Üstteki `@kullanici` alanına dokunarak istediğiniz kadar Instagram hesabı ekleyin, tek dokunuşla hesaplar arası geçin; ZIP/JSON yüklemeden bile herkese açık takipçi/takip edilen sayılarını ve (Instagram izin verdiğinde) açık listeleri doğrudan çekin.
-- 📈 **Zaman İçindeki Değişimler:** Kaydedilen verileri karşılaştırarak **takipten çıkanları**, **yeni takipçileri** ve **senin bıraktıklarını** otomatik listeler; son 6 aylık aktivite grafiği ve öne çıkan tarihleri sunar.
-- 🔍 **Arama, Sıralama & Hızlı Filtreler:** Kullanıcı adı, isim, özel etiket veya notlarda anlık arama; **Tümü / Notlular / Yakın Arkadaşlar** hızlı filtre çipleri ve profil kartından tek dokunuşla `@kullanıcı_adı` kopyalama.
-- 🎯 **Sıralı İnceleme Kuyruğu:** Beyaz liste dışındaki hesapları sırayla gözden geçirin, tek dokunuşla Instagram profilini açın, beyaz listeye alın veya yerel olarak işaretleyin.
-- 🗂️ **Ayrılmış 5 Sekmeli Yapı (`Panel · Kişiler · Analiz · Veri · Ayarlar`):**
-  - 📦 **Resmi Instagram Arşivi (Sıfır Risk):** Meta'dan indirilen ZIP / JSON / HTML dosyalarını tamamen cihaz içinde ve çevrimdışı analiz eder.
-  - 🌐 **Canlı Web Senkronizasyonu (Yavaş Mod):** Uygulama içi tarayıcı üzerinden beklemeli, molalı ve 15 dk soğuma korumalı salt-okunur senkronizasyon yapar.
-- 🎨 **Tema, Dil & Akıcı Arayüz:** **Koyu / Açık / Sistem** teması, **Türkçe / English / Sistem** dil seçeneği, sekmeler arası yatay kaydırma, CSV rapor paylaşımı ve uygulama içi sürüm notları.
+- 👥 **Kapsamlı Bağlantı Analizi:** Seni takip etmeyenleri, hayranlarını, karşılıklı takipleri, bekleyen istekleri ve beyaz listeyi tek ekranda gör.
+- 🔀 **Çoklu Hesap & Kullanıcı Adından Veri Çekme:** Üstteki kullanıcı adı alanına dokunarak birden fazla Instagram hesabı ekle ve aralarında tek dokunuşla geçiş yap; arşiv yüklemeden bile profil adını, takipçi ve takip edilen sayılarını çek.
+- 📈 **Zaman İçindeki Değişimler:** Anlık kayıtları karşılaştırarak takipten çıkanları, yeni takipçileri ve bıraktığın hesapları otomatik listeler; aylık aktivite grafiği ve öne çıkan tarihleri sunar.
+- 🔍 **Arama, Sıralama & Hızlı Filtreler:** İsim, kullanıcı adı, özel etiket ve notlarda arama yap; Notlular veya Yakın Arkadaşlar filtreleriyle listeni hızla daralt ve tek dokunuşla kullanıcı adını kopyala.
+- 🎯 **Sıralı İnceleme Kuyruğu:** Beyaz liste dışındaki hesapları adım adım gözden geçir, tek dokunuşla profili aç, beyaz listeye ekle veya işaretle.
+- 📁 **Ayrılmış 5 Sekmeli Kullanım (Panel, Kişiler, Analiz, Veri, Ayarlar):**
+  - 📦 **Resmi Instagram Arşivi:** İndirilen arşiv dosyalarını cihaz içinde çevrimdışı ve sıfır riskle analiz eder.
+  - 🌐 **Canlı Web Senkronizasyonu:** Uygulama içi tarayıcı üzerinden beklemeli ve soğuma korumalı salt okunur veri aktarımı sağlar.
+- 🌍 **Çoklu Dil & Tema Desteği:** Türkçe, İngilizce, Almanca, Fransızca, İspanyolca ve Sistem dili; Koyu, Açık ve Sistem teması; CSV rapor paylaşımı.
 
 ---
 
-## 🛡️ Siber Güvenlik & Gizlilik
+## 🔐 Güvenlik & Gizlilik
 
-- 🔐 **AES-256-GCM Şifreleme:** Tüm yerel kayıtlar Android Keystore donanım anahtarıyla şifrelenerek saklanır (`allowBackup="false"`).
-- 🔒 **Sertleştirilmiş WebView & Ağ:** Şifresiz HTTP (`cleartext`) kapalıdır; yalnızca `https://` üzerinden doğrulanmış Instagram / Meta alan adlarına izin verilir.
-- 📵 **Ekran & Köprü Koruması:** Giriş sırasında `FLAG_SECURE` ekran görüntüsü kilidi ve 256-bit Nonce doğrulamalı JS köprüsü aktiftir; SSL hatalarında bağlantı anında kesilir.
-- 🧱 **Arşiv & Veri Koruması:** Akışlı okuma, Zip Slip engeli, ZIP bombası limitleri, CSV formül enjeksiyonu nötralizasyonu ve uygulama içi **Güvenlik Testini Çalıştır** öz-denetimi bulunur.
-
----
-
-## 🛠️ Teknik Bilgiler & Derleme
-
-- **Platform:** Android `8.0+` (`minSdk 26` · `targetSdk 35`)
-- **Teknoloji:** Kotlin `2.0.21` · Jetpack Compose · Material 3 · R8 Optimizasyonu
-
-```bash
-# Birim güvenlik testlerini çalıştır
-./gradlew testDebugUnitTest
-
-# Optimize edilmiş Release APK derle
-./gradlew assembleRelease
-```
+- 🔒 **Yerel Şifreli Depolama:** Tüm hesap verilerin ve notların cihaz donanım anahtarıyla şifrelenerek saklanır; bulut yedeği kapalıdır.
+- 🌐 **Güvenli Bağlantı Kısıtlaması:** Yalnızca şifreli bağlantılar ve doğrulanmış resmi adresler üzerinden iletişim kurulur.
+- 📵 **Giriş & Ekran Koruması:** Web oturum açma sırasında ekran görüntüsü koruması aktiftir ve şifreniz hiçbir zaman kaydedilmez.
+- 📝 **Öz-Denetim & Güvenli Dışa Aktarım:** Arşiv yol kontrolleri, CSV formül koruması ve Ayarlar sekmesinden çalıştırılabilen canlı güvenlik testi içerir.
 
 ---
 
-## 📝 Sürüm Notları
+## 📝 Sürüm Notları (v1.33)
 
 Tüm değişikliklerin ayrıntıları için [CHANGELOG.md](CHANGELOG.md) dosyasına göz atabilirsiniz.
 
-- 🆕 **v1.33:** Tam **İngilizce / Türkçe / Sistem** dil desteği, ayrı **Veri** & **Ayarlar** sekmeleri (5 sekmeli alt bar), **çoklu hesap ekleme/geçiş**, ZIP yüklemeden **kullanıcı adı ile anlık profil & sayı çekme**, hızlı **Notlular / Yakın Arkadaşlar** filtreleri, tek dokunuşla kullanıcı adı kopyalama ve iyileştirilmiş ikon/buton yerleşimi (`by kyhlaer` başlıklı Panel).
-- 🚀 **v1.32:** **Installow by kyhlaer** açılış ekranı, AES-256-GCM Keystore şifreleme, WebView & Zip/CSV güvenlik kalkanı, canlı güvenlik testi ve R8 APK küçültme.
+- 🌍 Türkçe, İngilizce, Almanca, Fransızca ve İspanyolca tam dil desteği eklendi.
+- 📁 Veri ve Ayarlar sekmeleri birbirinden ayrıldı; çoklu hesap değiştirici ve kullanıcı adından canlı profil sorgulama eklendi.
+- 🎨 Üst buton boşlukları, indirme ikonu, hızlı not/yakın arkadaş filtreleri ve tek dokunuşla kullanıcı adı kopyalama eklendi.
+- 🚀 Açılış ekranı, yerel şifreleme ve güvenlik kalkanı aktif.

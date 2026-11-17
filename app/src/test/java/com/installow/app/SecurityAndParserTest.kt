@@ -157,25 +157,39 @@ class SecurityAndParserTest {
     }
 
     @Test
-    fun languageResolution_supportsTurkishEnglishAndSystemLocale() {
+    fun languageResolution_supportsFiveLanguagesAndSystemLocale() {
         assertEquals(AppLanguage.TR, resolveAppLanguage(LanguagePreference.TURKISH, Locale.US))
         assertEquals(AppLanguage.EN, resolveAppLanguage(LanguagePreference.ENGLISH, Locale("tr", "TR")))
+        assertEquals(AppLanguage.DE, resolveAppLanguage(LanguagePreference.GERMAN, Locale.US))
+        assertEquals(AppLanguage.FR, resolveAppLanguage(LanguagePreference.FRENCH, Locale.US))
+        assertEquals(AppLanguage.ES, resolveAppLanguage(LanguagePreference.SPANISH, Locale.US))
         assertEquals(AppLanguage.TR, resolveAppLanguage(LanguagePreference.SYSTEM, Locale("tr", "TR")))
+        assertEquals(AppLanguage.DE, resolveAppLanguage(LanguagePreference.SYSTEM, Locale.GERMANY))
+        assertEquals(AppLanguage.FR, resolveAppLanguage(LanguagePreference.SYSTEM, Locale.FRANCE))
+        assertEquals(AppLanguage.ES, resolveAppLanguage(LanguagePreference.SYSTEM, Locale("es", "ES")))
         assertEquals(AppLanguage.EN, resolveAppLanguage(LanguagePreference.SYSTEM, Locale.US))
 
         val tr = stringsFor(AppLanguage.TR)
         val en = stringsFor(AppLanguage.EN)
+        val de = stringsFor(AppLanguage.DE)
+        val fr = stringsFor(AppLanguage.FR)
+        val es = stringsFor(AppLanguage.ES)
         assertEquals("Panel", tr.navDashboard)
         assertEquals("Home", en.navDashboard)
-        assertEquals("Veri", tr.navData)
-        assertEquals("Ayarlar", tr.navSettings)
-        assertEquals("Data", en.navData)
-        assertEquals("Settings", en.navSettings)
+        assertEquals("Start", de.navDashboard)
+        assertEquals("Accueil", fr.navDashboard)
+        assertEquals("Inicio", es.navDashboard)
         assertEquals(tr.presetTags.size, en.presetTags.size)
+        assertEquals(tr.presetTags.size, de.presetTags.size)
+        assertEquals(tr.presetTags.size, fr.presetTags.size)
+        assertEquals(tr.presetTags.size, es.presetTags.size)
     }
 
     @Test
-    fun publicLookup_parsesWebProfileJsonAndHtmlCounts_andDetectsPrivate() {
+    fun publicLookup_parsesWebProfileJsonAndSsrHtmlEntities_andSanitizesUrls() {
+        assertEquals("kyhlaer", InstagramPublicLookup.sanitizeUsernameOrUrl("  @kyhlaer  "))
+        assertEquals("kyhlaer", InstagramPublicLookup.sanitizeUsernameOrUrl("https://www.instagram.com/kyhlaer/?igsh=abc"))
+
         val sampleJson = """
             {
               "data": {
@@ -200,20 +214,21 @@ class SecurityAndParserTest {
         assertEquals(4820, parsedJson?.followersCount)
         assertEquals(315, parsedJson?.followingCount)
 
-        val privateHtml = """
+        val privateSsrHtml = """
             <html><head>
-            <meta property="og:title" content="Gizli Hesap (@gizli_hesap) • Instagram photos and videos" />
-            <meta property="og:description" content="12,5 Bin Takipçi, 410 Takip, 24 Gönderi" />
-            <script>{"is_private":true,"profilePage_987654321":true}</script>
+            <meta property="og:title" content="Kerem (&#064;kyhlaer) &#x2022; Instagram photos and videos" />
+            <meta property="og:description" content="397 Followers, 416 Following, 3 Posts - See Instagram photos and videos from Kerem (&#064;kyhlaer)" />
+            <script>{"profile_id":"8728003276","is_private":true,"follower_count":410,"following_count":373}</script>
             </head></html>
         """.trimIndent()
 
-        val parsedHtml = InstagramPublicLookup.parsePublicHtmlProfile("gizli_hesap", privateHtml)
+        val parsedHtml = InstagramPublicLookup.parsePublicHtmlProfile("kyhlaer", privateSsrHtml)
         assertNotNull(parsedHtml)
-        assertEquals("Gizli Hesap", parsedHtml?.displayName)
+        assertEquals("Kerem", parsedHtml?.displayName)
+        assertEquals("8728003276", parsedHtml?.userId)
         assertEquals(true, parsedHtml?.isPrivate)
-        assertEquals(12500, parsedHtml?.followersCount)
-        assertEquals(410, parsedHtml?.followingCount)
+        assertEquals(410, parsedHtml?.followersCount)
+        assertEquals(373, parsedHtml?.followingCount)
         assertEquals(ListAccessStatus.PRIVATE_ACCOUNT, parsedHtml?.listAccessStatus)
 
         assertEquals(1_450_000, InstagramPublicLookup.parseCompactCount("1.45M"))

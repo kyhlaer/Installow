@@ -346,6 +346,7 @@ private fun InstallowRootApp(viewModel: InstallowViewModel) {
             workspaces = uiState.workspaces,
             activeWorkspaceId = uiState.activeWorkspaceId,
             isLookingUp = uiState.isLookingUpAccount,
+            lookupError = uiState.accountLookupError,
             onDismiss = { viewModel.setShowAccountSwitcherSheet(false) },
             onLookupAndAdd = viewModel::lookupAndAddAccount,
             onSwitchWorkspace = viewModel::switchWorkspace,

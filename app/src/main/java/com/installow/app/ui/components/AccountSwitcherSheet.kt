@@ -67,6 +67,7 @@ fun AccountSwitcherBottomSheet(
     workspaces: List<AccountWorkspace>,
     activeWorkspaceId: String,
     isLookingUp: Boolean,
+    lookupError: String?,
     onDismiss: () -> Unit,
     onLookupAndAdd: (String) -> Unit,
     onSwitchWorkspace: (String) -> Unit,
@@ -113,7 +114,7 @@ fun AccountSwitcherBottomSheet(
                 Spacer(modifier = Modifier.height(8.dp))
                 OutlinedTextField(
                     value = usernameInput,
-                    onValueChange = { usernameInput = it.take(35) },
+                    onValueChange = { usernameInput = it.take(80) },
                     modifier = Modifier.fillMaxWidth(),
                     singleLine = true,
                     enabled = !isLookingUp,
@@ -129,6 +130,15 @@ fun AccountSwitcherBottomSheet(
                         }
                     )
                 )
+                if (!lookupError.isNullOrBlank()) {
+                    Spacer(modifier = Modifier.height(8.dp))
+                    Text(
+                        text = lookupError,
+                        style = MaterialTheme.typography.labelMedium,
+                        color = AccentCoral,
+                        fontWeight = FontWeight.Medium
+                    )
+                }
                 Spacer(modifier = Modifier.height(10.dp))
                 Button(
                     onClick = { onLookupAndAdd(usernameInput) },

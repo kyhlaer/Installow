@@ -64,6 +64,7 @@ data class InstallowUiState(
     val isPrivateAccount: Boolean? = null,
     val listAccessStatus: ListAccessStatus = ListAccessStatus.FULL_DATA,
     val isLookingUpAccount: Boolean = false,
+    val accountLookupError: String? = null,
     val showAccountSwitcherSheet: Boolean = false,
     val allAccounts: List<InstaAccount> = emptyList(),
     val filteredAccounts: List<InstaAccount> = emptyList(),
@@ -239,7 +240,10 @@ class InstallowViewModel(application: Application) : AndroidViewModel(applicatio
     }
 
     fun setShowAccountSwitcherSheet(show: Boolean) {
-        _uiState.value = _uiState.value.copy(showAccountSwitcherSheet = show)
+        _uiState.value = _uiState.value.copy(
+            showAccountSwitcherSheet = show,
+            accountLookupError = if (!show) null else _uiState.value.accountLookupError
+        )
     }
 
     fun openAccountSheet(account: InstaAccount?) {
@@ -319,13 +323,20 @@ class InstallowViewModel(application: Application) : AndroidViewModel(applicatio
 
     fun lookupAndAddAccount(rawUsername: String) {
         val strings = currentStrings()
-        val clean = InstagramExportParser.normalizeUsername(rawUsername)
+        val sanitized = InstagramPublicLookup.sanitizeUsernameOrUrl(rawUsername)
+        val clean = InstagramExportParser.normalizeUsername(sanitized)
         if (clean == null) {
-            _uiState.value = _uiState.value.copy(statusMessage = strings.invalidUsernameMsg)
+            _uiState.value = _uiState.value.copy(
+                accountLookupError = strings.invalidUsernameMsg,
+                statusMessage = strings.invalidUsernameMsg
+            )
             return
         }
 
-        _uiState.value = _uiState.value.copy(isLookingUpAccount = true)
+        _uiState.value = _uiState.value.copy(
+            isLookingUpAccount = true,
+            accountLookupError = null
+        )
         viewModelScope.launch {
             val lookup = withContext(Dispatchers.IO) {
                 InstagramPublicLookup.lookupProfile(clean)
@@ -334,43 +345,21 @@ class InstallowViewModel(application: Application) : AndroidViewModel(applicatio
             val latestStrings = currentStrings()
             when (lookup.listAccessStatus) {
                 ListAccessStatus.PROFILE_NOT_FOUND -> {
+                    val errMsg = String.format(Locale.ROOT, latestStrings.publicLookupNotFoundMsgFormat, clean)
                     _uiState.value = _uiState.value.copy(
                         isLookingUpAccount = false,
-                        statusMessage = String.format(Locale.ROOT, latestStrings.publicLookupNotFoundMsgFormat, clean)
+                        accountLookupError = errMsg,
+                        statusMessage = errMsg
                     )
                     return@launch
                 }
 
                 ListAccessStatus.NETWORK_ERROR -> {
-                    val existing = workspaces.firstOrNull { it.id == clean }
-                    if (existing != null) {
-                        _uiState.value = _uiState.value.copy(isLookingUpAccount = false)
-                        switchWorkspace(existing.id)
-                        _uiState.value = _uiState.value.copy(statusMessage = latestStrings.publicLookupErrorMsg)
-                    } else {
-                        val fallbackSnapshot = Snapshot(
-                            id = UUID.randomUUID().toString(),
-                            createdAtMillis = System.currentTimeMillis(),
-                            sourceLabel = "${latestStrings.sourcePublicLookup} (@$clean)",
-                            followers = emptyMap(),
-                            following = emptyMap()
-                        )
-                        activateOrCreateWorkspaceFromLookup(
-                            username = clean,
-                            displayName = "",
-                            sourceType = DataSourceType.PUBLIC_LOOKUP,
-                            snapshot = fallbackSnapshot,
-                            reportedFollowers = null,
-                            reportedFollowing = null,
-                            isPrivate = null,
-                            listStatus = ListAccessStatus.NETWORK_ERROR
-                        )
-                        _uiState.value = _uiState.value.copy(
-                            isLookingUpAccount = false,
-                            showAccountSwitcherSheet = false,
-                            statusMessage = latestStrings.publicLookupErrorMsg
-                        )
-                    }
+                    _uiState.value = _uiState.value.copy(
+                        isLookingUpAccount = false,
+                        accountLookupError = latestStrings.publicLookupErrorMsg,
+                        statusMessage = latestStrings.publicLookupErrorMsg
+                    )
                     return@launch
                 }
 
@@ -1194,7 +1183,13 @@ class InstallowViewModel(application: Application) : AndroidViewModel(applicatio
     }
 
     private fun computeMonthlyStats(snapshot: Snapshot, language: AppLanguage): List<MonthlyStat> {
-        val monthLocale = if (language == AppLanguage.TR) Locale("tr", "TR") else Locale.US
+        val monthLocale = when (language) {
+            AppLanguage.TR -> Locale("tr", "TR")
+            AppLanguage.DE -> Locale.GERMANY
+            AppLanguage.FR -> Locale.FRANCE
+            AppLanguage.ES -> Locale("es", "ES")
+            AppLanguage.EN -> Locale.US
+        }
         val keyFmt = SimpleDateFormat("yyyy-MM", Locale.US)
         val labelFmt = SimpleDateFormat("MMM", monthLocale)
 

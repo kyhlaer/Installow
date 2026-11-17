@@ -6,6 +6,8 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.ExperimentalLayoutApi
+import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -115,10 +117,13 @@ fun SettingsScreen(
                     color = palette.textPrimary
                 )
                 Spacer(modifier = Modifier.height(10.dp))
-                SegmentedPreferenceRow(
+                LanguageSelectionGrid(
                     options = listOf(
                         LanguagePreference.TURKISH to strings.langTurkish,
                         LanguagePreference.ENGLISH to strings.langEnglish,
+                        LanguagePreference.GERMAN to strings.langGerman,
+                        LanguagePreference.FRENCH to strings.langFrench,
+                        LanguagePreference.SPANISH to strings.langSpanish,
                         LanguagePreference.SYSTEM to strings.langSystem
                     ),
                     selectedValue = uiState.languagePreference,
@@ -366,6 +371,45 @@ private fun <T> SegmentedPreferenceRow(
                     style = MaterialTheme.typography.labelLarge,
                     fontWeight = if (selected) FontWeight.SemiBold else FontWeight.Medium,
                     color = if (selected) palette.textPrimary else palette.textSecondary
+                )
+            }
+        }
+    }
+}
+
+@OptIn(ExperimentalLayoutApi::class)
+@Composable
+private fun LanguageSelectionGrid(
+    options: List<Pair<LanguagePreference, String>>,
+    selectedValue: LanguagePreference,
+    onSelect: (LanguagePreference) -> Unit
+) {
+    val palette = LocalInstallowPalette.current
+    FlowRow(
+        modifier = Modifier.fillMaxWidth(),
+        horizontalArrangement = Arrangement.spacedBy(8.dp),
+        verticalArrangement = Arrangement.spacedBy(8.dp)
+    ) {
+        options.forEach { (value, title) ->
+            val selected = selectedValue == value
+            Box(
+                modifier = Modifier
+                    .clip(RoundedCornerShape(10.dp))
+                    .background(if (selected) palette.accentContrastBg else palette.surfaceElevated)
+                    .border(
+                        width = 0.75.dp,
+                        color = if (selected) palette.accentContrastBg else palette.border,
+                        shape = RoundedCornerShape(10.dp)
+                    )
+                    .clickable { onSelect(value) }
+                    .padding(horizontal = 14.dp, vertical = 9.dp),
+                contentAlignment = Alignment.Center
+            ) {
+                Text(
+                    text = title,
+                    style = MaterialTheme.typography.labelLarge,
+                    fontWeight = if (selected) FontWeight.SemiBold else FontWeight.Medium,
+                    color = if (selected) palette.accentContrastFg else palette.textSecondary
                 )
             }
         }

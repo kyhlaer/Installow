@@ -69,12 +69,18 @@ enum class ThemePreference(val labelTr: String) {
 enum class LanguagePreference {
     SYSTEM,
     TURKISH,
-    ENGLISH
+    ENGLISH,
+    GERMAN,
+    FRENCH,
+    SPANISH
 }
 
 enum class AppLanguage {
     TR,
-    EN
+    EN,
+    DE,
+    FR,
+    ES
 }
 
 @Immutable

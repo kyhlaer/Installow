@@ -51,6 +51,15 @@ private val ANALYTICS_DATE_FORMATTER_TR: DateTimeFormatter = DateTimeFormatter
 private val ANALYTICS_DATE_FORMATTER_EN: DateTimeFormatter = DateTimeFormatter
     .ofPattern("MMM d, yyyy · HH:mm", Locale.US)
     .withZone(ZoneId.systemDefault())
+private val ANALYTICS_DATE_FORMATTER_DE: DateTimeFormatter = DateTimeFormatter
+    .ofPattern("d. MMM yyyy · HH:mm", Locale.GERMANY)
+    .withZone(ZoneId.systemDefault())
+private val ANALYTICS_DATE_FORMATTER_FR: DateTimeFormatter = DateTimeFormatter
+    .ofPattern("d MMM yyyy · HH:mm", Locale.FRANCE)
+    .withZone(ZoneId.systemDefault())
+private val ANALYTICS_DATE_FORMATTER_ES: DateTimeFormatter = DateTimeFormatter
+    .ofPattern("d MMM yyyy · HH:mm", Locale("es", "ES"))
+    .withZone(ZoneId.systemDefault())
 
 @Composable
 fun AnalyticsScreen(
@@ -60,10 +69,12 @@ fun AnalyticsScreen(
 ) {
     val palette = LocalInstallowPalette.current
     val strings = LocalAppStrings.current
-    val dateFormatter = if (strings.language == AppLanguage.TR) {
-        ANALYTICS_DATE_FORMATTER_TR
-    } else {
-        ANALYTICS_DATE_FORMATTER_EN
+    val dateFormatter = when (strings.language) {
+        AppLanguage.TR -> ANALYTICS_DATE_FORMATTER_TR
+        AppLanguage.DE -> ANALYTICS_DATE_FORMATTER_DE
+        AppLanguage.FR -> ANALYTICS_DATE_FORMATTER_FR
+        AppLanguage.ES -> ANALYTICS_DATE_FORMATTER_ES
+        AppLanguage.EN -> ANALYTICS_DATE_FORMATTER_EN
     }
 
     val healthTitle = when {
@@ -131,8 +142,10 @@ fun AnalyticsScreen(
                 ) {
                     MetricBox(
                         label = strings.metricReturnRate,
-                        value = "%${uiState.fanReturnPercent}".let {
-                            if (strings.language == AppLanguage.EN) "${uiState.fanReturnPercent}%" else it
+                        value = if (strings.language == AppLanguage.TR) {
+                            "%${uiState.fanReturnPercent}"
+                        } else {
+                            "${uiState.fanReturnPercent}%"
                         },
                         color = palette.textPrimary,
                         modifier = Modifier.weight(1f)
