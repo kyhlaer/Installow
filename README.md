@@ -1,10 +1,10 @@
-# Installow - by Kyhlaer
+# 🕵🏻 Installow - by Kyhlaer
 
 **by kyhlaer** · Sürüm `1.32`
 
 Instagram takipçi ve takip edilen analizini gizlilik odaklı, modern ve güvenli bir arayüzle cihaz üzerinde gerçekleştiren Android (Jetpack Compose) uygulaması.
 
-## Özellikler
+## ✨ Özellikler
 
 - **Detaylı Takip Analizi:** Seni takip etmeyenler, senin takip etmediklerin (hayranlar), karşılıklı takipleştiklerin, bekleyen istekler ve beyaz liste kategorileri.
 - **Zaman İçindeki Değişimler:** Farklı tarihlerdeki veri kayıtlarını karşılaştırarak takipten çıkanları ve yeni takipçileri tespit eder.
