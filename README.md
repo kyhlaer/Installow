@@ -1,4 +1,4 @@
-# Installow
+# Installow - by Kyhlaer
 
 **by kyhlaer** · Sürüm `1.32`
 
