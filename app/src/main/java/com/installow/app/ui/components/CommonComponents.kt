@@ -54,9 +54,11 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.installow.app.data.InstagramExportParser
+import com.installow.app.model.AppLanguage
 import com.installow.app.model.InstaAccount
 import com.installow.app.model.MonthlyStat
 import com.installow.app.model.RelationCategory
+import com.installow.app.ui.i18n.LocalAppStrings
 import com.installow.app.ui.theme.AccentAmber
 import com.installow.app.ui.theme.AccentBlue
 import com.installow.app.ui.theme.AccentCoral
@@ -124,6 +126,7 @@ fun GradientAvatar(
     modifier: Modifier = Modifier
 ) {
     val palette = LocalInstallowPalette.current
+    val strings = LocalAppStrings.current
     val tones = if (palette.isDark) AVATAR_TONES_DARK else AVATAR_TONES_LIGHT
     val bgTone = tones[abs(account.username.hashCode()) % tones.size]
 
@@ -166,7 +169,7 @@ fun GradientAvatar(
             ) {
                 Icon(
                     imageVector = Icons.Rounded.Shield,
-                    contentDescription = "Beyaz Liste",
+                    contentDescription = strings.whitelistBadgeDesc,
                     tint = Color.White,
                     modifier = Modifier.size(9.dp)
                 )
@@ -183,7 +186,7 @@ fun GradientAvatar(
             ) {
                 Icon(
                     imageVector = Icons.Rounded.Star,
-                    contentDescription = "Yakın Arkadaş",
+                    contentDescription = strings.closeFriendBadge,
                     tint = Color.White,
                     modifier = Modifier.size(9.dp)
                 )
@@ -197,13 +200,14 @@ fun CategoryBadge(
     category: RelationCategory,
     modifier: Modifier = Modifier
 ) {
-    val (label, accent) = when (category) {
-        RelationCategory.NON_FOLLOWER -> "Takip etmiyor" to AccentCoral
-        RelationCategory.FAN -> "Seni takip ediyor" to AccentBlue
-        RelationCategory.MUTUAL -> "Karşılıklı" to AccentEmerald
-        RelationCategory.PENDING_REQUEST -> "İstek bekliyor" to AccentAmber
+    val strings = LocalAppStrings.current
+    val accent = when (category) {
+        RelationCategory.NON_FOLLOWER -> AccentCoral
+        RelationCategory.FAN -> AccentBlue
+        RelationCategory.MUTUAL -> AccentEmerald
+        RelationCategory.PENDING_REQUEST -> AccentAmber
     }
-    PillBadge(text = label, color = accent, modifier = modifier)
+    PillBadge(text = strings.categoryLabel(category), color = accent, modifier = modifier)
 }
 
 @Composable
@@ -359,6 +363,7 @@ fun MonthlyActivityBarChart(
     modifier: Modifier = Modifier
 ) {
     val palette = LocalInstallowPalette.current
+    val strings = LocalAppStrings.current
     val maxValue = max(1, stats.maxOfOrNull { max(it.gainedFollowers, it.newFollowing) } ?: 1)
 
     Column(modifier = modifier.fillMaxWidth()) {
@@ -367,8 +372,8 @@ fun MonthlyActivityBarChart(
             horizontalArrangement = Arrangement.spacedBy(16.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
-            LegendDot(color = palette.textPrimary, text = "Yeni Takipçi")
-            LegendDot(color = BrandRose, text = "Yeni Takip Edilen")
+            LegendDot(color = palette.textPrimary, text = strings.legendNewFollowers)
+            LegendDot(color = BrandRose, text = strings.legendNewFollowing)
         }
 
         Spacer(modifier = Modifier.height(14.dp))
@@ -472,36 +477,48 @@ private val TR_LOCALE = Locale("tr", "TR")
 private val DATE_FORMATTER_TR: DateTimeFormatter = DateTimeFormatter
     .ofPattern("d MMM yyyy", TR_LOCALE)
     .withZone(ZoneId.systemDefault())
+private val DATE_FORMATTER_EN: DateTimeFormatter = DateTimeFormatter
+    .ofPattern("MMM d, yyyy", Locale.US)
+    .withZone(ZoneId.systemDefault())
 
-fun formatFollowerCountTr(count: Long): String {
-    return when {
-        count >= 1_000_000L -> String.format(TR_LOCALE, "%.1fM", count / 1_000_000.0).replace(",0M", "M")
-        count >= 10_000L -> String.format(TR_LOCALE, "%.1fB", count / 1_000.0).replace(",0B", "B")
-        count >= 1_000L -> String.format(TR_LOCALE, "%,d", count)
-        else -> count.toString()
+fun formatFollowerCount(count: Long, language: AppLanguage): String {
+    return when (language) {
+        AppLanguage.TR -> when {
+            count >= 1_000_000L -> String.format(TR_LOCALE, "%.1fM", count / 1_000_000.0).replace(",0M", "M")
+            count >= 10_000L -> String.format(TR_LOCALE, "%.1fB", count / 1_000.0).replace(",0B", "B")
+            count >= 1_000L -> String.format(TR_LOCALE, "%,d", count)
+            else -> count.toString()
+        }
+        AppLanguage.EN -> when {
+            count >= 1_000_000L -> String.format(Locale.US, "%.1fM", count / 1_000_000.0).replace(".0M", "M")
+            count >= 10_000L -> String.format(Locale.US, "%.1fK", count / 1_000.0).replace(".0K", "K")
+            count >= 1_000L -> String.format(Locale.US, "%,d", count)
+            else -> count.toString()
+        }
     }
 }
 
-fun formatEpochSecondsTr(epochSec: Long?): String {
-    if (epochSec == null || epochSec <= 0L) return "Tarih bilinmiyor"
-    val formatted = DATE_FORMATTER_TR.format(Instant.ofEpochSecond(epochSec))
-    val rel = formatRelativeTimeTr(epochSec * 1000L)
+fun formatEpochSeconds(epochSec: Long?, strings: com.installow.app.ui.i18n.AppStrings): String {
+    if (epochSec == null || epochSec <= 0L) return strings.dateUnknown
+    val formatter = if (strings.language == AppLanguage.TR) DATE_FORMATTER_TR else DATE_FORMATTER_EN
+    val formatted = formatter.format(Instant.ofEpochSecond(epochSec))
+    val rel = formatRelativeTime(epochSec * 1000L, strings)
     return "$formatted · $rel"
 }
 
-fun formatRelativeTimeTr(timeMillis: Long): String {
+fun formatRelativeTime(timeMillis: Long, strings: com.installow.app.ui.i18n.AppStrings): String {
     if (timeMillis <= 0L) return ""
     val diffMs = (System.currentTimeMillis() - timeMillis).coerceAtLeast(0L)
     val minutes = diffMs / 60_000L
     val hours = minutes / 60L
     val days = hours / 24L
     return when {
-        minutes < 2 -> "Az önce"
-        minutes < 60 -> "$minutes dk önce"
-        hours < 24 -> "$hours sa önce"
-        days < 30 -> "$days gün önce"
-        days < 365 -> "${days / 30} ay önce"
-        else -> "${days / 365} yıl önce"
+        minutes < 2 -> strings.relJustNow
+        minutes < 60 -> String.format(Locale.ROOT, strings.relMinutesAgo, minutes)
+        hours < 24 -> String.format(Locale.ROOT, strings.relHoursAgo, hours)
+        days < 30 -> String.format(Locale.ROOT, strings.relDaysAgo, days)
+        days < 365 -> String.format(Locale.ROOT, strings.relMonthsAgo, days / 30)
+        else -> String.format(Locale.ROOT, strings.relYearsAgo, days / 365)
     }
 }
 
@@ -522,13 +539,13 @@ fun openInstagramProfile(context: Context, username: String) {
     }
 }
 
-fun shareTextReport(context: Context, title: String, content: String) {
+fun shareTextReport(context: Context, title: String, content: String, chooserTitle: String) {
     val sendIntent = Intent(Intent.ACTION_SEND).apply {
         type = "text/plain"
         putExtra(Intent.EXTRA_SUBJECT, title)
         putExtra(Intent.EXTRA_TEXT, content)
     }
-    val chooser = Intent.createChooser(sendIntent, "Raporu Paylaş / Dışa Aktar").apply {
+    val chooser = Intent.createChooser(sendIntent, chooserTitle).apply {
         addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
     }
     runCatching { context.startActivity(chooser) }

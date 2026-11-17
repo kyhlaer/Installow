@@ -12,8 +12,8 @@ android {
         applicationId = "com.installow.app"
         minSdk = 26
         targetSdk = 35
-        versionCode = 4
-        versionName = "1.32"
+        versionCode = 5
+        versionName = "1.33"
 
         vectorDrawables {
             useSupportLibrary = true

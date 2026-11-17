@@ -44,7 +44,8 @@ import com.installow.app.model.FilterTab
 import com.installow.app.ui.components.DonutSegment
 import com.installow.app.ui.components.GlassCard
 import com.installow.app.ui.components.RelationshipDonutChart
-import com.installow.app.ui.components.formatRelativeTimeTr
+import com.installow.app.ui.components.formatRelativeTime
+import com.installow.app.ui.i18n.LocalAppStrings
 import com.installow.app.ui.theme.AccentAmber
 import com.installow.app.ui.theme.AccentBlue
 import com.installow.app.ui.theme.AccentCoral
@@ -65,6 +66,7 @@ fun DashboardScreen(
     onSimulateChange: () -> Unit
 ) {
     val palette = LocalInstallowPalette.current
+    val strings = LocalAppStrings.current
 
     LazyColumn(
         modifier = Modifier.fillMaxSize(),
@@ -105,7 +107,7 @@ fun DashboardScreen(
                                 .background(dotColor)
                         )
                         Text(
-                            text = "@${uiState.activeOwnerUsername} · ${uiState.dataSourceType.labelTr}",
+                            text = "@${uiState.activeOwnerUsername} · ${strings.dataSourceLabel(uiState.dataSourceType)}",
                             style = MaterialTheme.typography.labelMedium,
                             color = palette.textSecondary,
                             maxLines = 1,
@@ -125,7 +127,7 @@ fun DashboardScreen(
                     ) {
                         Icon(
                             imageVector = Icons.Rounded.Search,
-                            contentDescription = "Ara",
+                            contentDescription = strings.searchContentDesc,
                             tint = palette.textPrimary,
                             modifier = Modifier.size(18.dp)
                         )
@@ -140,7 +142,7 @@ fun DashboardScreen(
                     ) {
                         Icon(
                             imageVector = Icons.Rounded.FileUpload,
-                            contentDescription = "Veri Yükle",
+                            contentDescription = strings.uploadDataContentDesc,
                             tint = palette.textPrimary,
                             modifier = Modifier.size(18.dp)
                         )
@@ -157,21 +159,21 @@ fun DashboardScreen(
                     horizontalArrangement = Arrangement.spacedBy(10.dp)
                 ) {
                     MetricTile(
-                        title = "Beni Takip Etmeyen",
+                        title = strings.metricNonFollowersTitle,
                         count = uiState.nonFollowersActionableCount,
                         hint = if (uiState.hideWhitelistedInNonFollowers && uiState.whitelistCount > 0) {
-                            "Beyaz liste hariç"
+                            strings.metricNonFollowersHintWhitelist
                         } else {
-                            "Geri takip yok"
+                            strings.metricNonFollowersHintDefault
                         },
                         dotColor = AccentCoral,
                         onClick = { onOpenTab(FilterTab.NON_FOLLOWERS) },
                         modifier = Modifier.weight(1f)
                     )
                     MetricTile(
-                        title = "Takip Etmediklerim",
+                        title = strings.metricFansTitle,
                         count = uiState.fansCount,
-                        hint = "Seni takip ediyor",
+                        hint = strings.metricFansHint,
                         dotColor = AccentBlue,
                         onClick = { onOpenTab(FilterTab.FANS) },
                         modifier = Modifier.weight(1f)
@@ -183,17 +185,17 @@ fun DashboardScreen(
                     horizontalArrangement = Arrangement.spacedBy(10.dp)
                 ) {
                     MetricTile(
-                        title = "Takipçilerim",
+                        title = strings.metricFollowersTitle,
                         count = uiState.followersCount,
-                        hint = "Tüm liste",
+                        hint = strings.metricAllListHint,
                         dotColor = AccentEmerald,
                         onClick = { onOpenTab(FilterTab.ALL_FOLLOWERS) },
                         modifier = Modifier.weight(1f)
                     )
                     MetricTile(
-                        title = "Takip Ettiklerim",
+                        title = strings.metricFollowingTitle,
                         count = uiState.followingCount,
-                        hint = "Tüm liste",
+                        hint = strings.metricAllListHint,
                         dotColor = BrandRose,
                         onClick = { onOpenTab(FilterTab.ALL_FOLLOWING) },
                         modifier = Modifier.weight(1f)
@@ -211,13 +213,13 @@ fun DashboardScreen(
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     Text(
-                        text = "Takip Dengesi",
+                        text = strings.followBalanceTitle,
                         style = MaterialTheme.typography.titleLarge,
                         color = palette.textPrimary
                     )
-                    val ratioFormatted = String.format(Locale.US, "%.2fx", uiState.followBackRatio)
+                    val ratioFormatted = String.format(Locale.US, "%.2f", uiState.followBackRatio)
                     Text(
-                        text = "Oran $ratioFormatted",
+                        text = String.format(Locale.ROOT, strings.ratioFormat, ratioFormatted),
                         style = MaterialTheme.typography.labelMedium,
                         color = palette.textSecondary
                     )
@@ -227,12 +229,12 @@ fun DashboardScreen(
 
                 RelationshipDonutChart(
                     segments = listOf(
-                        DonutSegment("Karşılıklı", uiState.mutualCount, AccentEmerald),
-                        DonutSegment("Takip Etmeyen", uiState.nonFollowersTotalCount, AccentCoral),
-                        DonutSegment("Takip Etmediğin", uiState.fansCount, AccentBlue)
+                        DonutSegment(strings.donutMutual, uiState.mutualCount, AccentEmerald),
+                        DonutSegment(strings.donutNonFollower, uiState.nonFollowersTotalCount, AccentCoral),
+                        DonutSegment(strings.donutFan, uiState.fansCount, AccentBlue)
                     ),
                     centerPercent = uiState.reciprocityPercent,
-                    centerLabel = "Eşleşme"
+                    centerLabel = strings.donutMatchLabel
                 )
             }
         }
@@ -250,15 +252,15 @@ fun DashboardScreen(
                 ) {
                     Column {
                         Text(
-                            text = "Son Değişimler",
+                            text = strings.recentChangesTitle,
                             style = MaterialTheme.typography.titleLarge,
                             color = palette.textPrimary
                         )
                         Text(
                             text = if (diff != null) {
-                                "Son kayıt: ${formatRelativeTimeTr(diff.previousTimeMillis)}"
+                                "${strings.lastRecordPrefix}${formatRelativeTime(diff.previousTimeMillis, strings)}"
                             } else {
-                                "Sonraki veri yüklemede karşılaştırılır"
+                                strings.compareOnNextSync
                             },
                             style = MaterialTheme.typography.labelMedium,
                             color = palette.textMuted
@@ -266,7 +268,7 @@ fun DashboardScreen(
                     }
                     if (uiState.dataSourceType == DataSourceType.DEMO) {
                         Text(
-                            text = "Simüle Et",
+                            text = strings.simulateAction,
                             style = MaterialTheme.typography.labelLarge,
                             color = BrandRose,
                             modifier = Modifier
@@ -280,9 +282,9 @@ fun DashboardScreen(
                 HorizontalDivider(thickness = 0.5.dp, color = palette.border)
 
                 GroupedNavRow(
-                    title = "Takipten Çıkanlar",
+                    title = strings.lostFollowersTitle,
                     subtitle = diff?.lostFollowers?.take(2)?.takeIf { it.isNotEmpty() }
-                        ?.joinToString(", ") { "@$it" } ?: "Değişim yok",
+                        ?.joinToString(", ") { "@$it" } ?: strings.noChangesText,
                     count = diff?.lostFollowers?.size ?: 0,
                     countColor = AccentCoral,
                     onClick = { onOpenTab(FilterTab.UNFOLLOWERS_DIFF) }
@@ -295,9 +297,9 @@ fun DashboardScreen(
                 )
 
                 GroupedNavRow(
-                    title = "Yeni Takipçiler",
+                    title = strings.newFollowersTitle,
                     subtitle = diff?.newFollowers?.take(2)?.takeIf { it.isNotEmpty() }
-                        ?.joinToString(", ") { "@$it" } ?: "Değişim yok",
+                        ?.joinToString(", ") { "@$it" } ?: strings.noChangesText,
                     count = diff?.newFollowers?.size ?: 0,
                     countColor = AccentEmerald,
                     onClick = { onOpenTab(FilterTab.ALL_FOLLOWERS) }
@@ -309,8 +311,8 @@ fun DashboardScreen(
         item {
             GlassCard(padding = 0.dp) {
                 GroupedNavRow(
-                    title = "Karşılıklı Takipleştiklerin",
-                    subtitle = "İki taraflı takipler",
+                    title = strings.mutualsRowTitle,
+                    subtitle = strings.mutualsRowSubtitle,
                     count = uiState.mutualCount,
                     countColor = palette.textPrimary,
                     onClick = { onOpenTab(FilterTab.MUTUALS) }
@@ -321,8 +323,8 @@ fun DashboardScreen(
                     color = palette.border
                 )
                 GroupedNavRow(
-                    title = "Bekleyen Takip İstekleri",
-                    subtitle = "Henüz kabul edilmemiş istekler",
+                    title = strings.pendingRowTitle,
+                    subtitle = strings.pendingRowSubtitle,
                     count = uiState.pendingCount,
                     countColor = AccentAmber,
                     onClick = { onOpenTab(FilterTab.PENDING) }
@@ -333,8 +335,8 @@ fun DashboardScreen(
                     color = palette.border
                 )
                 GroupedNavRow(
-                    title = "Beyaz Liste",
-                    subtitle = "Takipten çıkma uyarısından hariç tutulanlar",
+                    title = strings.whitelistRowTitle,
+                    subtitle = strings.whitelistRowSubtitle,
                     count = uiState.whitelistCount,
                     countColor = AccentIndigo,
                     onClick = { onOpenTab(FilterTab.WHITELIST) }
@@ -346,13 +348,13 @@ fun DashboardScreen(
         item {
             GlassCard(padding = 16.dp) {
                 Text(
-                    text = "Sıralı İnceleme",
+                    text = strings.smartQueueTitle,
                     style = MaterialTheme.typography.titleMedium,
                     color = palette.textPrimary
                 )
                 Spacer(modifier = Modifier.height(4.dp))
                 Text(
-                    text = "Seni takip etmeyen ${uiState.nonFollowersActionableCount} hesabı sırayla inceleyip Instagram'da açabilir veya beyaz listeye alabilirsin.",
+                    text = String.format(Locale.ROOT, strings.smartQueueDescFormat, uiState.nonFollowersActionableCount),
                     style = MaterialTheme.typography.bodyMedium,
                     color = palette.textSecondary
                 )
@@ -373,7 +375,7 @@ fun DashboardScreen(
                     )
                     Spacer(modifier = Modifier.width(6.dp))
                     Text(
-                        text = "İncelemeyi Başlat",
+                        text = strings.startReviewButton,
                         fontWeight = FontWeight.SemiBold
                     )
                 }

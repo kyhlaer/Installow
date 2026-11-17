@@ -25,13 +25,15 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import com.installow.app.model.AppLanguage
 import com.installow.app.model.FilterTab
 import com.installow.app.model.InstaAccount
 import com.installow.app.ui.components.GlassCard
 import com.installow.app.ui.components.GradientAvatar
 import com.installow.app.ui.components.MonthlyActivityBarChart
 import com.installow.app.ui.components.PillBadge
-import com.installow.app.ui.components.formatEpochSecondsTr
+import com.installow.app.ui.components.formatEpochSeconds
+import com.installow.app.ui.i18n.LocalAppStrings
 import com.installow.app.ui.theme.AccentAmber
 import com.installow.app.ui.theme.AccentBlue
 import com.installow.app.ui.theme.AccentCoral
@@ -43,8 +45,11 @@ import java.time.ZoneId
 import java.time.format.DateTimeFormatter
 import java.util.Locale
 
-private val ANALYTICS_DATE_FORMATTER: DateTimeFormatter = DateTimeFormatter
+private val ANALYTICS_DATE_FORMATTER_TR: DateTimeFormatter = DateTimeFormatter
     .ofPattern("d MMM yyyy · HH:mm", Locale("tr", "TR"))
+    .withZone(ZoneId.systemDefault())
+private val ANALYTICS_DATE_FORMATTER_EN: DateTimeFormatter = DateTimeFormatter
+    .ofPattern("MMM d, yyyy · HH:mm", Locale.US)
     .withZone(ZoneId.systemDefault())
 
 @Composable
@@ -54,11 +59,17 @@ fun AnalyticsScreen(
     onOpenAccountSheet: (InstaAccount) -> Unit
 ) {
     val palette = LocalInstallowPalette.current
+    val strings = LocalAppStrings.current
+    val dateFormatter = if (strings.language == AppLanguage.TR) {
+        ANALYTICS_DATE_FORMATTER_TR
+    } else {
+        ANALYTICS_DATE_FORMATTER_EN
+    }
 
     val healthTitle = when {
-        uiState.reciprocityPercent >= 75 -> "Güçlü Karşılıklılık"
-        uiState.reciprocityPercent >= 50 -> "Dengeli Profil"
-        else -> "Takip Temizliği Önerilir"
+        uiState.reciprocityPercent >= 75 -> strings.healthStrong
+        uiState.reciprocityPercent >= 50 -> strings.healthBalanced
+        else -> strings.healthCleanupSuggested
     }
     val healthColor = when {
         uiState.reciprocityPercent >= 75 -> AccentEmerald
@@ -74,12 +85,12 @@ fun AnalyticsScreen(
         item {
             Column {
                 Text(
-                    text = "Analiz",
+                    text = strings.analyticsTitle,
                     style = MaterialTheme.typography.headlineMedium,
                     color = palette.textPrimary
                 )
                 Text(
-                    text = "Hesap dengesi, aylık aktivite ve kayıt geçmişi",
+                    text = strings.analyticsSubtitle,
                     style = MaterialTheme.typography.bodyMedium,
                     color = palette.textSecondary
                 )
@@ -96,7 +107,7 @@ fun AnalyticsScreen(
                 ) {
                     Column {
                         Text(
-                            text = "Hesap Durumu",
+                            text = strings.accountStatusLabel,
                             style = MaterialTheme.typography.labelMedium,
                             color = palette.textMuted
                         )
@@ -106,7 +117,10 @@ fun AnalyticsScreen(
                             color = palette.textPrimary
                         )
                     }
-                    PillBadge(text = "%${uiState.reciprocityPercent} Eşleşme", color = healthColor)
+                    PillBadge(
+                        text = String.format(Locale.ROOT, strings.matchBadgeFormat, uiState.reciprocityPercent),
+                        color = healthColor
+                    )
                 }
 
                 Spacer(modifier = Modifier.height(14.dp))
@@ -116,19 +130,21 @@ fun AnalyticsScreen(
                     horizontalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
                     MetricBox(
-                        label = "Geri Dönüş",
-                        value = "%${uiState.fanReturnPercent}",
+                        label = strings.metricReturnRate,
+                        value = "%${uiState.fanReturnPercent}".let {
+                            if (strings.language == AppLanguage.EN) "${uiState.fanReturnPercent}%" else it
+                        },
                         color = palette.textPrimary,
                         modifier = Modifier.weight(1f)
                     )
                     MetricBox(
-                        label = "Takip Etmeyen",
+                        label = strings.metricNonFollowerShort,
                         value = "${uiState.nonFollowersTotalCount}",
                         color = AccentCoral,
                         modifier = Modifier.weight(1f)
                     )
                     MetricBox(
-                        label = "Hayranlar",
+                        label = strings.metricFansShort,
                         value = "${uiState.fansCount}",
                         color = AccentBlue,
                         modifier = Modifier.weight(1f)
@@ -141,12 +157,12 @@ fun AnalyticsScreen(
         item {
             GlassCard(padding = 18.dp) {
                 Text(
-                    text = "Son 6 Ay",
+                    text = strings.last6MonthsTitle,
                     style = MaterialTheme.typography.titleLarge,
                     color = palette.textPrimary
                 )
                 Text(
-                    text = "Tarih bilgisi bulunan hesapların aylık dağılımı",
+                    text = strings.last6MonthsSubtitle,
                     style = MaterialTheme.typography.labelMedium,
                     color = palette.textMuted
                 )
@@ -159,7 +175,7 @@ fun AnalyticsScreen(
         item {
             GlassCard(padding = 0.dp) {
                 Text(
-                    text = "Öne Çıkanlar",
+                    text = strings.highlightsTitle,
                     style = MaterialTheme.typography.titleLarge,
                     color = palette.textPrimary,
                     modifier = Modifier.padding(start = 16.dp, end = 16.dp, top = 14.dp, bottom = 10.dp)
@@ -168,9 +184,9 @@ fun AnalyticsScreen(
 
                 uiState.earliestFollower?.let { acc ->
                     MilestoneRow(
-                        label = "İlk Takipçin",
+                        label = strings.firstFollowerLabel,
                         account = acc,
-                        dateText = formatEpochSecondsTr(acc.followedMeAt),
+                        dateText = formatEpochSeconds(acc.followedMeAt, strings),
                         onClick = { onOpenAccountSheet(acc) }
                     )
                 }
@@ -182,9 +198,9 @@ fun AnalyticsScreen(
                         color = palette.border
                     )
                     MilestoneRow(
-                        label = "En Eski Karşılıksız Takip",
+                        label = strings.oldestNonFollowerLabel,
                         account = acc,
-                        dateText = formatEpochSecondsTr(acc.iFollowedAt),
+                        dateText = formatEpochSeconds(acc.iFollowedAt, strings),
                         onClick = { onOpenAccountSheet(acc) }
                     )
                 }
@@ -196,9 +212,9 @@ fun AnalyticsScreen(
                         color = palette.border
                     )
                     MilestoneRow(
-                        label = "En Uzun Bekleyen İstek",
+                        label = strings.longestPendingLabel,
                         account = acc,
-                        dateText = formatEpochSecondsTr(acc.pendingRequestAt),
+                        dateText = formatEpochSeconds(acc.pendingRequestAt, strings),
                         onClick = { onOpenTab(FilterTab.PENDING) }
                     )
                 }
@@ -210,7 +226,7 @@ fun AnalyticsScreen(
             val reversedSnaps = uiState.snapshots.reversed()
             GlassCard(padding = 0.dp) {
                 Text(
-                    text = "Kayıt Geçmişi (${reversedSnaps.size})",
+                    text = String.format(Locale.ROOT, strings.snapshotHistoryFormat, reversedSnaps.size),
                     style = MaterialTheme.typography.titleLarge,
                     color = palette.textPrimary,
                     modifier = Modifier.padding(start = 16.dp, end = 16.dp, top = 14.dp, bottom = 10.dp)
@@ -232,20 +248,20 @@ fun AnalyticsScreen(
                                 color = palette.textPrimary
                             )
                             Text(
-                                text = ANALYTICS_DATE_FORMATTER.format(Instant.ofEpochMilli(snap.createdAtMillis)),
+                                text = dateFormatter.format(Instant.ofEpochMilli(snap.createdAtMillis)),
                                 style = MaterialTheme.typography.labelSmall,
                                 color = palette.textMuted
                             )
                         }
                         Column(horizontalAlignment = Alignment.End) {
                             Text(
-                                text = "${snap.followerCount} takipçi",
+                                text = String.format(Locale.ROOT, strings.followersCountUnit, snap.followerCount),
                                 style = MaterialTheme.typography.labelMedium,
                                 color = palette.textPrimary,
                                 fontWeight = FontWeight.SemiBold
                             )
                             Text(
-                                text = "${snap.followingCount} takip",
+                                text = String.format(Locale.ROOT, strings.followingCountUnit, snap.followingCount),
                                 style = MaterialTheme.typography.labelSmall,
                                 color = palette.textSecondary
                             )

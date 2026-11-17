@@ -3,6 +3,7 @@ package com.installow.app.data
 import android.content.Context
 import com.installow.app.model.AccountAnnotation
 import com.installow.app.model.DataSourceType
+import com.installow.app.model.LanguagePreference
 import com.installow.app.model.Snapshot
 import com.installow.app.model.ThemePreference
 import com.installow.app.util.SecurityManager
@@ -16,6 +17,7 @@ data class PersistedAppState(
     val annotations: Map<String, AccountAnnotation>,
     val dataSourceType: DataSourceType,
     val themePreference: ThemePreference,
+    val languagePreference: LanguagePreference,
     val hideWhitelistedInNonFollowers: Boolean,
     val activeOwnerUsername: String
 )
@@ -90,11 +92,16 @@ class LocalRepository(private val context: Context) {
                 ThemePreference.valueOf(root.optString("themePreference", ThemePreference.DARK.name))
             }.getOrDefault(ThemePreference.DARK)
 
+            val langPref = runCatching {
+                LanguagePreference.valueOf(root.optString("languagePreference", LanguagePreference.SYSTEM.name))
+            }.getOrDefault(LanguagePreference.SYSTEM)
+
             PersistedAppState(
                 snapshots = snapshots,
                 annotations = annotations,
                 dataSourceType = sourceType,
                 themePreference = themePref,
+                languagePreference = langPref,
                 hideWhitelistedInNonFollowers = root.optBoolean("hideWhitelistedInNonFollowers", true),
                 activeOwnerUsername = root.optString("activeOwnerUsername", "benim.hesabim")
             )
@@ -127,6 +134,7 @@ class LocalRepository(private val context: Context) {
             root.put("annotations", annotationsObj)
             root.put("dataSourceType", state.dataSourceType.name)
             root.put("themePreference", state.themePreference.name)
+            root.put("languagePreference", state.languagePreference.name)
             root.put("hideWhitelistedInNonFollowers", state.hideWhitelistedInNonFollowers)
             root.put("activeOwnerUsername", state.activeOwnerUsername)
 

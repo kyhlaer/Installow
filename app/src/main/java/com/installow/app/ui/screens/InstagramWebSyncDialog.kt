@@ -67,6 +67,8 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.viewinterop.AndroidView
+import com.installow.app.ui.i18n.AppStrings
+import com.installow.app.ui.i18n.LocalAppStrings
 import com.installow.app.ui.theme.AccentAmber
 import com.installow.app.ui.theme.AccentCoral
 import com.installow.app.ui.theme.AccentEmerald
@@ -75,6 +77,7 @@ import com.installow.app.ui.theme.LocalInstallowPalette
 import com.installow.app.util.SecurityManager
 import org.json.JSONArray
 import org.json.JSONObject
+import java.util.Locale
 import kotlin.math.ceil
 
 private const val INSTAGRAM_LOGIN_URL = "https://www.instagram.com/accounts/login/"
@@ -96,6 +99,7 @@ fun InstagramWebSyncDialog(
     ) -> Unit
 ) {
     val palette = LocalInstallowPalette.current
+    val strings = LocalAppStrings.current
     val context = LocalContext.current
     val mainHandler = remember { Handler(Looper.getMainLooper()) }
     val bridgeToken = remember { SecurityManager.generateSessionToken() }
@@ -134,9 +138,9 @@ fun InstagramWebSyncDialog(
     var statusText by remember {
         mutableStateOf(
             if (remainingLockMinutes > 0) {
-                "Hesap koruma soğuma süresi aktif: $remainingLockMinutes dk bekleyin veya sıfır riskli Resmi ZIP yöntemini kullanın."
+                String.format(Locale.ROOT, strings.webSyncCooldownStatusFormat, remainingLockMinutes)
             } else {
-                "Instagram hesabınıza giriş yapın, ardından aşağıdaki butona dokunun."
+                strings.webSyncInitialStatus
             }
         )
     }
@@ -238,7 +242,7 @@ fun InstagramWebSyncDialog(
                     } catch (e: Exception) {
                         isFetching = false
                         isError = true
-                        statusText = "Veri işlenirken hata oluştu: ${e.localizedMessage}"
+                        statusText = "${strings.webSyncProcessingErrorPrefix}${e.localizedMessage}"
                     }
                 }
             }
@@ -276,7 +280,7 @@ fun InstagramWebSyncDialog(
                 mainHandler.post {
                     isFetching = false
                     isError = true
-                    statusText = "SSL/TLS sertifikası doğrulanamadı. Bağlantı güvenlik gerekçesiyle durduruldu."
+                    statusText = strings.webSyncSslErrorStatus
                 }
             }
 
@@ -287,7 +291,7 @@ fun InstagramWebSyncDialog(
                 if (!userId.isNullOrBlank()) {
                     isLoggedIn = true
                     if (!isFetching && !isError && !isInCooldown) {
-                        statusText = "Oturum algılandı. Takipçi ve takip edilenleri çekebilirsiniz."
+                        statusText = strings.webSyncSessionDetected
                     }
                 }
             }
@@ -335,14 +339,14 @@ fun InstagramWebSyncDialog(
                     )
                     Column {
                         Text(
-                            text = "Instagram Web Bağlantısı",
+                            text = strings.webSyncHeaderTitle,
                             style = MaterialTheme.typography.titleMedium,
                             color = palette.textPrimary,
                             maxLines = 1,
                             overflow = TextOverflow.Ellipsis
                         )
                         Text(
-                            text = "Güvenli yavaş mod · Şifre kaydedilmez",
+                            text = strings.webSyncHeaderSubtitle,
                             style = MaterialTheme.typography.labelSmall,
                             color = palette.textMuted,
                             maxLines = 1,
@@ -360,28 +364,28 @@ fun InstagramWebSyncDialog(
                                 webView.clearHistory()
                                 isLoggedIn = false
                                 isError = false
-                                statusText = "Oturum ve çerezler sıfırlandı. Yeniden giriş yapabilirsiniz."
+                                statusText = strings.webSyncCookiesResetStatus
                                 webView.loadUrl(INSTAGRAM_LOGIN_URL)
                             }
                         }
                     ) {
                         Icon(
                             imageVector = Icons.Rounded.DeleteSweep,
-                            contentDescription = "Çerezleri Temizle",
+                            contentDescription = strings.clearCookiesDesc,
                             tint = palette.textSecondary
                         )
                     }
                     IconButton(onClick = { webView.reload() }) {
                         Icon(
                             imageVector = Icons.Rounded.Refresh,
-                            contentDescription = "Yenile",
+                            contentDescription = strings.refreshDesc,
                             tint = palette.textPrimary
                         )
                     }
                     IconButton(onClick = onDismiss) {
                         Icon(
                             imageVector = Icons.Rounded.Close,
-                            contentDescription = "Kapat",
+                            contentDescription = strings.closeDesc,
                             tint = palette.textPrimary
                         )
                     }
@@ -438,7 +442,7 @@ fun InstagramWebSyncDialog(
                         modifier = Modifier.size(15.dp)
                     )
                     Text(
-                        text = "Koruma aktif: Sayfalar arası 2-3 sn bekleme, 15 dk soğuma sınırı ve uyarıda otomatik durdurma.",
+                        text = strings.webSyncProtectionBanner,
                         style = MaterialTheme.typography.labelSmall,
                         color = palette.textSecondary
                     )
@@ -460,10 +464,10 @@ fun InstagramWebSyncDialog(
                         if (!isFetching && !isInCooldown) {
                             isFetching = true
                             isError = false
-                            statusText = "Oturum doğrulanıyor..."
+                            statusText = strings.webSyncVerifyingSession
                             val cookieUserId = readInstagramCookie("ds_user_id").orEmpty()
                             val cookieCsrf = readInstagramCookie("csrftoken").orEmpty()
-                            val script = buildFetchInstagramScript(cookieUserId, cookieCsrf, bridgeToken)
+                            val script = buildFetchInstagramScript(cookieUserId, cookieCsrf, bridgeToken, strings)
                             webView.evaluateJavascript(script, null)
                         }
                     },
@@ -482,7 +486,7 @@ fun InstagramWebSyncDialog(
                             color = palette.accentContrastFg
                         )
                         Spacer(Modifier.width(8.dp))
-                        Text("Güvenli Modda Çekiliyor...", fontWeight = FontWeight.SemiBold)
+                        Text(strings.webSyncFetchingButton, fontWeight = FontWeight.SemiBold)
                     } else if (isInCooldown) {
                         Icon(
                             imageVector = Icons.Rounded.Shield,
@@ -490,7 +494,10 @@ fun InstagramWebSyncDialog(
                             modifier = Modifier.size(18.dp)
                         )
                         Spacer(Modifier.width(8.dp))
-                        Text("Koruma Beklemesi ($remainingLockMinutes dk)", fontWeight = FontWeight.SemiBold)
+                        Text(
+                            String.format(Locale.ROOT, strings.webSyncCooldownButtonFormat, remainingLockMinutes),
+                            fontWeight = FontWeight.SemiBold
+                        )
                     } else {
                         Icon(
                             imageVector = Icons.Rounded.CloudDownload,
@@ -498,7 +505,7 @@ fun InstagramWebSyncDialog(
                             modifier = Modifier.size(18.dp)
                         )
                         Spacer(Modifier.width(8.dp))
-                        Text("Takipçi & Takip Edilenleri Çek", fontWeight = FontWeight.SemiBold)
+                        Text(strings.webSyncFetchButton, fontWeight = FontWeight.SemiBold)
                     }
                 }
             }
@@ -542,11 +549,23 @@ private fun jsonArrayToUserMap(arr: JSONArray?): Map<String, Pair<String, Long>>
 private fun buildFetchInstagramScript(
     cookieUserId: String,
     cookieCsrf: String,
-    bridgeToken: String
+    bridgeToken: String,
+    strings: AppStrings
 ): String {
     val quotedUserId = JSONObject.quote(cookieUserId)
     val quotedCsrf = JSONObject.quote(cookieCsrf)
     val quotedToken = JSONObject.quote(bridgeToken)
+    val qNoSession = JSONObject.quote(strings.webSyncJsNoSession)
+    val qFetchingMid = JSONObject.quote(strings.webSyncJsFetchingFormat)
+    val qFollowersLabel = JSONObject.quote(strings.webSyncJsFollowersLabel)
+    val qFollowingLabel = JSONObject.quote(strings.webSyncJsFollowingLabel)
+    val qRateLimited = JSONObject.quote(strings.webSyncJsRateLimited)
+    val qHttpPrefix = JSONObject.quote(strings.webSyncJsHttpErrorPrefix)
+    val qHttpSuffix = JSONObject.quote(strings.webSyncJsHttpErrorSuffix)
+    val qBreakSuffix = JSONObject.quote(strings.webSyncJsTakingBreakSuffix)
+    val qFollowersBreak = JSONObject.quote(strings.webSyncJsFollowersDoneBreak)
+    val qSaving = JSONObject.quote(strings.webSyncJsSaving)
+    val qGenericError = JSONObject.quote(strings.webSyncJsGenericError)
     return """
 (async function() {
     const TOKEN = $quotedToken;
@@ -561,7 +580,7 @@ private fun buildFetchInstagramScript(
             if (cookieMatch) userId = cookieMatch[1];
         }
         if (!userId) {
-            InstallowBridge.onError(TOKEN, "Aktif oturum bulunamadı. Lütfen önce yukarıdan Instagram hesabınıza giriş yapın.");
+            InstallowBridge.onError(TOKEN, $qNoSession);
             return;
         }
 
@@ -579,7 +598,7 @@ private fun buildFetchInstagramScript(
             headers["x-csrftoken"] = csrfToken;
         }
 
-        let ownerUsername = "instagram_hesabim";
+        let ownerUsername = "instagram_account";
         try {
             const meRes = await fetch("https://www.instagram.com/api/v1/users/" + userId + "/info/", {
                 headers: headers,
@@ -593,14 +612,14 @@ private fun buildFetchInstagramScript(
             }
         } catch (e) {}
 
-        async function fetchAll(kind, labelTr) {
+        async function fetchAll(kind, labelText) {
             const collected = [];
             let maxId = null;
             let page = 0;
             const maxSafePages = 40;
             while (true) {
                 page++;
-                InstallowBridge.onProgress(TOKEN, labelTr + " güvenli modda çekiliyor (" + collected.length + " kişi)...");
+                InstallowBridge.onProgress(TOKEN, labelText + $qFetchingMid + collected.length + ")...");
                 let url = "https://www.instagram.com/api/v1/friendships/" + userId + "/" + kind + "/?count=50";
                 if (maxId) url += "&max_id=" + encodeURIComponent(maxId);
 
@@ -616,15 +635,12 @@ private fun buildFetchInstagramScript(
                     msgText.includes("wait") || msgText.includes("limit") || msgText.includes("challenge") || msgText.includes("checkpoint")));
 
                 if (isChallenge) {
-                    InstallowBridge.onRateLimited(
-                        TOKEN,
-                        "Instagram hız uyarısı algılandı (HTTP " + res.status + "). Hesabınızı korumak için işlem durduruldu ve 60 dk kilitlendi. Sıfır risk için Resmi ZIP yöntemini kullanın."
-                    );
+                    InstallowBridge.onRateLimited(TOKEN, $qRateLimited);
                     return null;
                 }
 
                 if (!res.ok || !data) {
-                    throw new Error("Instagram HTTP " + res.status + " döndürdü. İşlem güvenli şekilde durduruldu.");
+                    throw new Error($qHttpPrefix + res.status + $qHttpSuffix);
                 }
 
                 const users = data.users || [];
@@ -640,7 +656,7 @@ private fun buildFetchInstagramScript(
                 maxId = data.next_max_id;
 
                 if (page % 8 === 0) {
-                    InstallowBridge.onProgress(TOKEN, labelTr + " (" + collected.length + " kişi) · Kısa mola veriliyor...");
+                    InstallowBridge.onProgress(TOKEN, labelText + " (" + collected.length + $qBreakSuffix);
                     await restPause();
                 } else {
                     await humanDelay();
@@ -649,23 +665,23 @@ private fun buildFetchInstagramScript(
             return collected;
         }
 
-        const followers = await fetchAll("followers", "Takipçiler");
+        const followers = await fetchAll("followers", $qFollowersLabel);
         if (followers === null) return;
 
-        InstallowBridge.onProgress(TOKEN, "Takipçiler tamam (" + followers.length + "). Kısa mola...");
+        InstallowBridge.onProgress(TOKEN, $qFollowersBreak);
         await restPause();
 
-        const following = await fetchAll("following", "Takip edilenler");
+        const following = await fetchAll("following", $qFollowingLabel);
         if (following === null) return;
 
-        InstallowBridge.onProgress(TOKEN, "Tamamlandı, kaydediliyor...");
+        InstallowBridge.onProgress(TOKEN, $qSaving);
         InstallowBridge.onComplete(TOKEN, JSON.stringify({
             ownerUsername: ownerUsername,
             followers: followers,
             following: following
         }));
     } catch (err) {
-        InstallowBridge.onError(TOKEN, err && err.message ? err.message : "Senkronizasyon güvenli şekilde durduruldu.");
+        InstallowBridge.onError(TOKEN, err && err.message ? err.message : $qGenericError);
     }
 })();
 """.trimIndent()

@@ -1,6 +1,10 @@
 package com.installow.app
 
 import com.installow.app.data.InstagramExportParser
+import com.installow.app.model.AppLanguage
+import com.installow.app.model.LanguagePreference
+import com.installow.app.ui.i18n.resolveAppLanguage
+import com.installow.app.ui.i18n.stringsFor
 import com.installow.app.util.SecurityManager
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
@@ -12,6 +16,7 @@ import org.junit.Test
 import java.io.ByteArrayInputStream
 import java.io.ByteArrayOutputStream
 import java.nio.charset.StandardCharsets
+import java.util.Locale
 import java.util.zip.ZipEntry
 import java.util.zip.ZipOutputStream
 
@@ -140,5 +145,19 @@ class SecurityAndParserTest {
         assertFalse(SecurityManager.constantTimeEquals(tokenA, tokenB))
         assertFalse(SecurityManager.constantTimeEquals(tokenA, ""))
         assertFalse(SecurityManager.constantTimeEquals(tokenA, null))
+    }
+
+    @Test
+    fun languageResolution_supportsTurkishEnglishAndSystemLocale() {
+        assertEquals(AppLanguage.TR, resolveAppLanguage(LanguagePreference.TURKISH, Locale.US))
+        assertEquals(AppLanguage.EN, resolveAppLanguage(LanguagePreference.ENGLISH, Locale("tr", "TR")))
+        assertEquals(AppLanguage.TR, resolveAppLanguage(LanguagePreference.SYSTEM, Locale("tr", "TR")))
+        assertEquals(AppLanguage.EN, resolveAppLanguage(LanguagePreference.SYSTEM, Locale.US))
+
+        val tr = stringsFor(AppLanguage.TR)
+        val en = stringsFor(AppLanguage.EN)
+        assertEquals("Panel", tr.navDashboard)
+        assertEquals("Home", en.navDashboard)
+        assertEquals(tr.presetTags.size, en.presetTags.size)
     }
 }

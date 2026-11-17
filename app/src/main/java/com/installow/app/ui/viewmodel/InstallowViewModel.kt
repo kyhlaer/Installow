@@ -12,10 +12,12 @@ import com.installow.app.data.InstagramExportParser
 import com.installow.app.data.LocalRepository
 import com.installow.app.data.PersistedAppState
 import com.installow.app.model.AccountAnnotation
+import com.installow.app.model.AppLanguage
 import com.installow.app.model.AppScreen
 import com.installow.app.model.DataSourceType
 import com.installow.app.model.FilterTab
 import com.installow.app.model.InstaAccount
+import com.installow.app.model.LanguagePreference
 import com.installow.app.model.MonthlyStat
 import com.installow.app.model.ParsedExportData
 import com.installow.app.model.RelationCategory
@@ -23,6 +25,9 @@ import com.installow.app.model.Snapshot
 import com.installow.app.model.SnapshotDiff
 import com.installow.app.model.SortOption
 import com.installow.app.model.ThemePreference
+import com.installow.app.ui.i18n.AppStrings
+import com.installow.app.ui.i18n.resolveAppLanguage
+import com.installow.app.ui.i18n.stringsFor
 import com.installow.app.util.SecurityCheckItem
 import com.installow.app.util.SecurityManager
 import kotlinx.coroutines.Dispatchers
@@ -45,6 +50,7 @@ data class InstallowUiState(
     val sortOption: SortOption = SortOption.NEWEST_FIRST,
     val hideWhitelistedInNonFollowers: Boolean = true,
     val themePreference: ThemePreference = ThemePreference.DARK,
+    val languagePreference: LanguagePreference = LanguagePreference.SYSTEM,
     val dataSourceType: DataSourceType = DataSourceType.DEMO,
     val activeOwnerUsername: String = "benim.hesabim",
     val allAccounts: List<InstaAccount> = emptyList(),
@@ -94,6 +100,9 @@ class InstallowViewModel(application: Application) : AndroidViewModel(applicatio
         loadInitialData()
     }
 
+    private fun currentStrings(pref: LanguagePreference = _uiState.value.languagePreference): AppStrings =
+        stringsFor(resolveAppLanguage(pref))
+
     private fun loadInitialData() {
         viewModelScope.launch {
             val loaded = withContext(Dispatchers.IO) {
@@ -105,6 +114,7 @@ class InstallowViewModel(application: Application) : AndroidViewModel(applicatio
                 rebuildState(
                     sourceType = loaded.dataSourceType,
                     themePreference = loaded.themePreference,
+                    languagePreference = loaded.languagePreference,
                     hideWhitelisted = loaded.hideWhitelistedInNonFollowers,
                     ownerUsername = loaded.activeOwnerUsername
                 )
@@ -153,6 +163,18 @@ class InstallowViewModel(application: Application) : AndroidViewModel(applicatio
         persistCurrentState()
     }
 
+    fun setLanguagePreference(preference: LanguagePreference) {
+        val hadChecks = _uiState.value.securityChecks.isNotEmpty()
+        rebuildState(languagePreference = preference)
+        if (hadChecks) {
+            val lang = resolveAppLanguage(preference)
+            _uiState.value = _uiState.value.copy(
+                securityChecks = SecurityManager.runSecuritySelfChecks(lang)
+            )
+        }
+        persistCurrentState()
+    }
+
     fun setShowWebSyncDialog(show: Boolean) {
         _uiState.value = _uiState.value.copy(showWebSyncDialog = show)
     }
@@ -167,21 +189,25 @@ class InstallowViewModel(application: Application) : AndroidViewModel(applicatio
 
     fun runSecurityAudit() {
         viewModelScope.launch {
+            val pref = _uiState.value.languagePreference
+            val lang = resolveAppLanguage(pref)
+            val strings = stringsFor(lang)
             val results = withContext(Dispatchers.Default) {
-                SecurityManager.runSecuritySelfChecks()
+                SecurityManager.runSecuritySelfChecks(lang)
             }
             val passedCount = results.count { it.passed }
             _uiState.value = _uiState.value.copy(
                 securityChecks = results,
-                statusMessage = "Güvenlik denetimi tamamlandı: $passedCount / ${results.size} kalkan doğrulandı."
+                statusMessage = String.format(Locale.ROOT, strings.securityAuditMsgFormat, passedCount, results.size)
             )
         }
     }
 
     fun clearWebSessionCookies(context: Context) {
         SecurityManager.clearWebViewSessionData(context)
+        val strings = currentStrings()
         _uiState.value = _uiState.value.copy(
-            statusMessage = "Web oturum çerezleri ve tarayıcı önbelleği temizlendi."
+            statusMessage = strings.cookiesClearedMsg
         )
     }
 
@@ -192,11 +218,12 @@ class InstallowViewModel(application: Application) : AndroidViewModel(applicatio
         rebuildState()
         refreshSheetAccountIfOpen(username)
         persistCurrentState()
-        val msg = if (updated.isWhitelisted) {
-            "@$username beyaz listeye eklendi."
-        } else {
-            "@$username beyaz listeden çıkarıldı."
-        }
+        val strings = currentStrings()
+        val msg = String.format(
+            Locale.ROOT,
+            if (updated.isWhitelisted) strings.whitelistAddedFormat else strings.whitelistRemovedFormat,
+            username
+        )
         _uiState.value = _uiState.value.copy(statusMessage = msg)
     }
 
@@ -209,7 +236,10 @@ class InstallowViewModel(application: Application) : AndroidViewModel(applicatio
         rebuildState()
         refreshSheetAccountIfOpen(username)
         persistCurrentState()
-        _uiState.value = _uiState.value.copy(statusMessage = "@$username için etiket ve not kaydedildi.")
+        val strings = currentStrings()
+        _uiState.value = _uiState.value.copy(
+            statusMessage = String.format(Locale.ROOT, strings.noteSavedFormat, username)
+        )
     }
 
     fun markUnfollowedLocally(username: String) {
@@ -229,13 +259,15 @@ class InstallowViewModel(application: Application) : AndroidViewModel(applicatio
             removeFromQueueAndAdvance(username)
         }
         persistCurrentState()
+        val strings = currentStrings()
         _uiState.value = _uiState.value.copy(
-            statusMessage = "@$username takip edilenlerden çıkarıldı olarak işaretlendi."
+            statusMessage = String.format(Locale.ROOT, strings.markedUnfollowedMsgFormat, username)
         )
     }
 
     fun startReviewQueue() {
         val state = _uiState.value
+        val strings = currentStrings(state.languagePreference)
         val candidates = state.allAccounts
             .filter { it.category == RelationCategory.NON_FOLLOWER && !it.isWhitelisted }
             .sortedBy { it.relevantTimestamp }
@@ -243,7 +275,7 @@ class InstallowViewModel(application: Application) : AndroidViewModel(applicatio
 
         if (candidates.isEmpty()) {
             _uiState.value = state.copy(
-                statusMessage = "İncelenecek (beyaz liste dışı) takip etmeyen hesap bulunamadı!"
+                statusMessage = strings.queueNoCandidatesMsg
             )
             return
         }
@@ -261,6 +293,7 @@ class InstallowViewModel(application: Application) : AndroidViewModel(applicatio
 
     fun nextInQueue() {
         val state = _uiState.value
+        val strings = currentStrings(state.languagePreference)
         if (!state.isQueueActive || state.queueUsernames.isEmpty()) return
         if (state.queueIndex + 1 >= state.queueUsernames.size) {
             _uiState.value = state.copy(
@@ -268,7 +301,7 @@ class InstallowViewModel(application: Application) : AndroidViewModel(applicatio
                 queueUsernames = emptyList(),
                 queueIndex = 0,
                 currentQueueAccount = null,
-                statusMessage = "Sıralı inceleme kuyruğu tamamlandı!"
+                statusMessage = strings.queueCompletedMsg
             )
         } else {
             val nextIdx = state.queueIndex + 1
@@ -300,6 +333,7 @@ class InstallowViewModel(application: Application) : AndroidViewModel(applicatio
 
     private fun removeFromQueueAndAdvance(username: String) {
         val state = _uiState.value
+        val strings = currentStrings(state.languagePreference)
         val remaining = state.queueUsernames.filterNot { it == username }
         if (remaining.isEmpty()) {
             _uiState.value = state.copy(
@@ -307,7 +341,7 @@ class InstallowViewModel(application: Application) : AndroidViewModel(applicatio
                 queueUsernames = emptyList(),
                 queueIndex = 0,
                 currentQueueAccount = null,
-                statusMessage = "Kuyruktaki tüm hesaplar incelendi!"
+                statusMessage = strings.queueAllReviewedMsg
             )
         } else {
             val nextIdx = state.queueIndex.coerceAtMost(remaining.lastIndex)
@@ -340,8 +374,9 @@ class InstallowViewModel(application: Application) : AndroidViewModel(applicatio
         )
         persistCurrentState()
         if (!silent) {
+            val strings = currentStrings()
             _uiState.value = _uiState.value.copy(
-                statusMessage = "Demo veri seti ve örnek değişim geçmişi yüklendi."
+                statusMessage = strings.demoResetMsg
             )
         }
     }
@@ -352,11 +387,12 @@ class InstallowViewModel(application: Application) : AndroidViewModel(applicatio
         snapshots = (snapshots + simulated).takeLast(15)
         rebuildState()
         persistCurrentState()
+        val strings = currentStrings()
         val diff = _uiState.value.latestDiff
         val msg = if (diff != null) {
-            "Yeni snapshot: ${diff.lostFollowers.size} takipten çıkan, ${diff.newFollowers.size} yeni takipçi."
+            String.format(Locale.ROOT, strings.simDiffMsgFormat, diff.lostFollowers.size, diff.newFollowers.size)
         } else {
-            "Yeni değişim kaydı oluşturuldu."
+            strings.simCreatedMsg
         }
         _uiState.value = _uiState.value.copy(statusMessage = msg)
     }
@@ -380,12 +416,13 @@ class InstallowViewModel(application: Application) : AndroidViewModel(applicatio
                 }
             }
 
+            val strings = currentStrings()
             result.fold(
                 onSuccess = { parsed ->
                     if (parsed.followers.isEmpty() && parsed.following.isEmpty()) {
                         _uiState.value = _uiState.value.copy(
                             isImporting = false,
-                            statusMessage = "Seçilen dosyalarda followers_1.json / following.json verisi bulunamadı. Lütfen Instagram ZIP arşivini veya JSON/HTML dosyalarını seçin."
+                            statusMessage = strings.importNotFoundMsg
                         )
                         return@fold
                     }
@@ -415,7 +452,7 @@ class InstallowViewModel(application: Application) : AndroidViewModel(applicatio
                     val snapshot = Snapshot(
                         id = UUID.randomUUID().toString(),
                         createdAtMillis = System.currentTimeMillis(),
-                        sourceLabel = "Instagram Arşivi (${parsed.sourceFilesFound.size} dosya)",
+                        sourceLabel = String.format(Locale.ROOT, strings.archiveSourceLabelFormat, parsed.sourceFilesFound.size),
                         followers = newFollowersMap,
                         following = newFollowingMap,
                         pendingRequests = parsed.pendingRequests.mapValues { it.value.timestampSec },
@@ -432,19 +469,19 @@ class InstallowViewModel(application: Application) : AndroidViewModel(applicatio
 
                     rebuildState(
                         sourceType = DataSourceType.OFFICIAL_EXPORT,
-                        ownerUsername = "Instagram Arşivim"
+                        ownerUsername = strings.archiveOwnerFallback
                     )
                     persistCurrentState()
                     _uiState.value = _uiState.value.copy(
                         isImporting = false,
                         currentScreen = AppScreen.DASHBOARD,
-                        statusMessage = "İçe aktarıldı: ${newFollowersMap.size} takipçi, ${newFollowingMap.size} takip edilen."
+                        statusMessage = String.format(Locale.ROOT, strings.importSuccessFormat, newFollowersMap.size, newFollowingMap.size)
                     )
                 },
                 onFailure = { error ->
                     _uiState.value = _uiState.value.copy(
                         isImporting = false,
-                        statusMessage = "Dosya okunamadı: ${error.localizedMessage ?: "Bilinmeyen hata"}"
+                        statusMessage = "${strings.importFailedPrefix}${error.localizedMessage ?: strings.unknownErrorText}"
                     )
                 }
             )
@@ -473,11 +510,12 @@ class InstallowViewModel(application: Application) : AndroidViewModel(applicatio
             followingMap[handle] = if (pair.second > 0L) pair.second else nowSec
         }
 
-        val cleanOwner = ownerUsername.trim().removePrefix("@").ifBlank { "instagram_hesabim" }
+        val strings = currentStrings()
+        val cleanOwner = ownerUsername.trim().removePrefix("@").ifBlank { "instagram_account" }
         val snapshot = Snapshot(
             id = UUID.randomUUID().toString(),
             createdAtMillis = now,
-            sourceLabel = "Canlı Web Senkronizasyonu (@$cleanOwner)",
+            sourceLabel = String.format(Locale.ROOT, strings.webSyncSourceLabelFormat, cleanOwner),
             followers = followersMap,
             following = followingMap,
             displayNames = displayNames
@@ -498,20 +536,28 @@ class InstallowViewModel(application: Application) : AndroidViewModel(applicatio
         _uiState.value = _uiState.value.copy(
             showWebSyncDialog = false,
             currentScreen = AppScreen.DASHBOARD,
-            statusMessage = "@$cleanOwner senkronize edildi: ${followersMap.size} takipçi, ${followingMap.size} takip edilen."
+            statusMessage = String.format(Locale.ROOT, strings.webSyncSuccessFormat, cleanOwner, followersMap.size, followingMap.size)
         )
     }
 
     fun exportCurrentListText(): String {
         val state = _uiState.value
+        val strings = currentStrings(state.languagePreference)
         val builder = StringBuilder()
-        builder.appendLine("Installow Raporu — ${state.selectedTab.labelTr}")
-        builder.appendLine("Hesap: @${SecurityManager.sanitizeCsvCell(state.activeOwnerUsername)} | Toplam: ${state.filteredAccounts.size}")
-        builder.appendLine("kullanici_adi,gorunen_ad,durum,etiket,beyaz_liste,profil_url")
+        builder.appendLine(String.format(Locale.ROOT, strings.csvReportHeaderFormat, strings.tabLabel(state.selectedTab)))
+        builder.appendLine(
+            String.format(
+                Locale.ROOT,
+                strings.csvAccountSummaryFormat,
+                SecurityManager.sanitizeCsvCell(state.activeOwnerUsername),
+                state.filteredAccounts.size
+            )
+        )
+        builder.appendLine(strings.csvColumnsHeader)
         state.filteredAccounts.forEach { acc ->
             val safeUser = SecurityManager.sanitizeCsvCell(acc.username)
             val safeName = SecurityManager.sanitizeCsvCell(acc.displayName)
-            val safeCategory = SecurityManager.sanitizeCsvCell(acc.category.labelTr)
+            val safeCategory = SecurityManager.sanitizeCsvCell(strings.categoryLabel(acc.category))
             val safeTag = SecurityManager.sanitizeCsvCell(acc.customTag)
             val safeUrl = SecurityManager.sanitizeCsvCell(acc.profileUrl)
             builder.appendLine(
@@ -524,6 +570,7 @@ class InstallowViewModel(application: Application) : AndroidViewModel(applicatio
     private fun rebuildState(
         sourceType: DataSourceType = _uiState.value.dataSourceType,
         themePreference: ThemePreference = _uiState.value.themePreference,
+        languagePreference: LanguagePreference = _uiState.value.languagePreference,
         hideWhitelisted: Boolean = _uiState.value.hideWhitelistedInNonFollowers,
         ownerUsername: String = _uiState.value.activeOwnerUsername
     ) {
@@ -652,12 +699,13 @@ class InstallowViewModel(application: Application) : AndroidViewModel(applicatio
             FilterTab.WHITELIST to whitelistCount
         )
 
-        val monthlyStats = computeMonthlyStats(latest)
+        val monthlyStats = computeMonthlyStats(latest, resolveAppLanguage(languagePreference))
         val currentState = _uiState.value
 
         _uiState.value = currentState.copy(
             dataSourceType = sourceType,
             themePreference = themePreference,
+            languagePreference = languagePreference,
             hideWhitelistedInNonFollowers = hideWhitelisted,
             activeOwnerUsername = ownerUsername,
             allAccounts = accounts,
@@ -751,10 +799,10 @@ class InstallowViewModel(application: Application) : AndroidViewModel(applicatio
         }
     }
 
-    private fun computeMonthlyStats(snapshot: Snapshot): List<MonthlyStat> {
-        val trLocale = Locale("tr", "TR")
+    private fun computeMonthlyStats(snapshot: Snapshot, language: AppLanguage): List<MonthlyStat> {
+        val monthLocale = if (language == AppLanguage.TR) Locale("tr", "TR") else Locale.US
         val keyFmt = SimpleDateFormat("yyyy-MM", Locale.US)
-        val labelFmt = SimpleDateFormat("MMM", trLocale)
+        val labelFmt = SimpleDateFormat("MMM", monthLocale)
 
         val latestSec = (snapshot.followers.values + snapshot.following.values)
             .filter { it > 0L }
@@ -773,7 +821,7 @@ class InstallowViewModel(application: Application) : AndroidViewModel(applicatio
         for (i in 5 downTo 0) {
             val c = (cal.clone() as Calendar).apply { add(Calendar.MONTH, -i) }
             val d = Date(c.timeInMillis)
-            months.add(keyFmt.format(d) to labelFmt.format(d).replaceFirstChar { it.uppercase(trLocale) })
+            months.add(keyFmt.format(d) to labelFmt.format(d).replaceFirstChar { it.uppercase(monthLocale) })
         }
 
         val followerBuckets = mutableMapOf<String, Int>()
@@ -823,6 +871,7 @@ class InstallowViewModel(application: Application) : AndroidViewModel(applicatio
             annotations = LinkedHashMap(annotations),
             dataSourceType = state.dataSourceType,
             themePreference = state.themePreference,
+            languagePreference = state.languagePreference,
             hideWhitelistedInNonFollowers = state.hideWhitelistedInNonFollowers,
             activeOwnerUsername = state.activeOwnerUsername
         )

@@ -9,7 +9,11 @@ import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.Immutable
 import androidx.compose.runtime.staticCompositionLocalOf
 import androidx.compose.ui.graphics.Color
+import com.installow.app.model.LanguagePreference
 import com.installow.app.model.ThemePreference
+import com.installow.app.ui.i18n.LocalAppStrings
+import com.installow.app.ui.i18n.resolveAppLanguage
+import com.installow.app.ui.i18n.stringsFor
 
 @Immutable
 data class InstallowPalette(
@@ -91,6 +95,7 @@ private val LightColorScheme = lightColorScheme(
 @Composable
 fun InstallowTheme(
     themePreference: ThemePreference = ThemePreference.DARK,
+    languagePreference: LanguagePreference = LanguagePreference.SYSTEM,
     content: @Composable () -> Unit
 ) {
     val useDark = when (themePreference) {
@@ -100,8 +105,12 @@ fun InstallowTheme(
     }
     val palette = if (useDark) DarkPalette else LightPalette
     val colorScheme = if (useDark) DarkColorScheme else LightColorScheme
+    val appStrings = stringsFor(resolveAppLanguage(languagePreference))
 
-    CompositionLocalProvider(LocalInstallowPalette provides palette) {
+    CompositionLocalProvider(
+        LocalInstallowPalette provides palette,
+        LocalAppStrings provides appStrings
+    ) {
         MaterialTheme(
             colorScheme = colorScheme,
             typography = InstallowTypography,

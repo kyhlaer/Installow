@@ -72,17 +72,17 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.installow.app.model.FilterTab
 import com.installow.app.model.InstaAccount
-import com.installow.app.model.PresetTags
 import com.installow.app.model.RelationCategory
 import com.installow.app.model.SortOption
 import com.installow.app.ui.components.CategoryBadge
 import com.installow.app.ui.components.GlassCard
 import com.installow.app.ui.components.GradientAvatar
 import com.installow.app.ui.components.PillBadge
-import com.installow.app.ui.components.formatEpochSecondsTr
-import com.installow.app.ui.components.formatFollowerCountTr
+import com.installow.app.ui.components.formatEpochSeconds
+import com.installow.app.ui.components.formatFollowerCount
 import com.installow.app.ui.components.openInstagramProfile
 import com.installow.app.ui.components.shareTextReport
+import com.installow.app.ui.i18n.LocalAppStrings
 import com.installow.app.ui.theme.AccentAmber
 import com.installow.app.ui.theme.AccentBlue
 import com.installow.app.ui.theme.AccentCoral
@@ -91,6 +91,7 @@ import com.installow.app.ui.theme.AccentIndigo
 import com.installow.app.ui.theme.BrandRose
 import com.installow.app.ui.theme.LocalInstallowPalette
 import com.installow.app.ui.viewmodel.InstallowUiState
+import java.util.Locale
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -111,6 +112,7 @@ fun ConnectionsScreen(
     onBuildExportText: () -> String
 ) {
     val palette = LocalInstallowPalette.current
+    val strings = LocalAppStrings.current
     val context = LocalContext.current
     var sortMenuExpanded by remember { mutableStateOf(false) }
 
@@ -128,12 +130,17 @@ fun ConnectionsScreen(
             ) {
                 Column {
                     Text(
-                        text = uiState.selectedTab.labelTr,
+                        text = strings.tabLabel(uiState.selectedTab),
                         style = MaterialTheme.typography.headlineSmall,
                         color = palette.textPrimary
                     )
                     Text(
-                        text = "${uiState.filteredAccounts.size} kişi · ${uiState.sortOption.labelTr}",
+                        text = String.format(
+                            Locale.ROOT,
+                            strings.connectionsCountFormat,
+                            uiState.filteredAccounts.size,
+                            strings.sortLabel(uiState.sortOption)
+                        ),
                         style = MaterialTheme.typography.labelMedium,
                         color = palette.textSecondary
                     )
@@ -151,7 +158,7 @@ fun ConnectionsScreen(
                         ) {
                             Icon(
                                 imageVector = Icons.AutoMirrored.Rounded.Sort,
-                                contentDescription = "Sırala",
+                                contentDescription = strings.sortContentDesc,
                                 tint = palette.textPrimary,
                                 modifier = Modifier.size(18.dp)
                             )
@@ -164,7 +171,7 @@ fun ConnectionsScreen(
                                 DropdownMenuItem(
                                     text = {
                                         Text(
-                                            text = option.labelTr,
+                                            text = strings.sortLabel(option),
                                             fontWeight = if (option == uiState.sortOption) FontWeight.SemiBold else FontWeight.Normal,
                                             color = if (option == uiState.sortOption) BrandRose else palette.textPrimary
                                         )
@@ -182,8 +189,9 @@ fun ConnectionsScreen(
                         onClick = {
                             shareTextReport(
                                 context = context,
-                                title = "Installow - ${uiState.selectedTab.labelTr}",
-                                content = onBuildExportText()
+                                title = "${strings.shareReportSubjectPrefix}${strings.tabLabel(uiState.selectedTab)}",
+                                content = onBuildExportText(),
+                                chooserTitle = strings.shareChooserTitle
                             )
                         },
                         modifier = Modifier
@@ -194,7 +202,7 @@ fun ConnectionsScreen(
                     ) {
                         Icon(
                             imageVector = Icons.Rounded.Share,
-                            contentDescription = "Paylaş",
+                            contentDescription = strings.shareContentDesc,
                             tint = palette.textPrimary,
                             modifier = Modifier.size(17.dp)
                         )
@@ -204,7 +212,7 @@ fun ConnectionsScreen(
 
             Spacer(modifier = Modifier.height(10.dp))
 
-            // Sade Çerçevesiz Arama Çubuğu (Native iOS / Instagram stili)
+            // Sade Çerçevesiz Arama Çubuğu
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -223,7 +231,7 @@ fun ConnectionsScreen(
                 Box(modifier = Modifier.weight(1f)) {
                     if (uiState.searchQuery.isEmpty()) {
                         Text(
-                            text = "Kullanıcı adı, isim veya not ara",
+                            text = strings.searchPlaceholder,
                             style = MaterialTheme.typography.bodyMedium,
                             color = palette.textMuted
                         )
@@ -240,7 +248,7 @@ fun ConnectionsScreen(
                 if (uiState.searchQuery.isNotEmpty()) {
                     Icon(
                         imageVector = Icons.Rounded.Close,
-                        contentDescription = "Temizle",
+                        contentDescription = strings.clearContentDesc,
                         tint = palette.textSecondary,
                         modifier = Modifier
                             .size(18.dp)
@@ -278,7 +286,7 @@ fun ConnectionsScreen(
                         .padding(horizontal = 12.dp, vertical = 7.dp)
                 ) {
                     Text(
-                        text = "${tab.shortLabelTr} $count",
+                        text = "${strings.tabShortLabel(tab)} $count",
                         style = MaterialTheme.typography.labelMedium,
                         color = if (selected) palette.accentContrastFg else palette.textSecondary,
                         fontWeight = if (selected) FontWeight.SemiBold else FontWeight.Medium
@@ -315,7 +323,7 @@ fun ConnectionsScreen(
                         modifier = Modifier.size(15.dp)
                     )
                     Text(
-                        text = if (uiState.hideWhitelistedInNonFollowers) "Beyaz Liste Gizli" else "Beyaz Liste Dahil",
+                        text = if (uiState.hideWhitelistedInNonFollowers) strings.whitelistHidden else strings.whitelistIncluded,
                         style = MaterialTheme.typography.labelMedium,
                         color = palette.textPrimary,
                         maxLines = 1,
@@ -339,7 +347,7 @@ fun ConnectionsScreen(
                         modifier = Modifier.size(16.dp)
                     )
                     Text(
-                        text = "Sıralı İncele",
+                        text = strings.smartQueueChip,
                         style = MaterialTheme.typography.labelMedium,
                         color = palette.accentContrastFg,
                         fontWeight = FontWeight.SemiBold
@@ -393,7 +401,7 @@ fun ConnectionsScreen(
                     modifier = Modifier.size(15.dp)
                 )
                 Text(
-                    text = "Resmi Instagram ZIP dosyaları diğer kişilerin takipçi sayısını içermez.",
+                    text = strings.followerCountZipNotice,
                     style = MaterialTheme.typography.labelSmall,
                     color = palette.textSecondary
                 )
@@ -402,7 +410,7 @@ fun ConnectionsScreen(
 
         Spacer(modifier = Modifier.height(8.dp))
 
-        // Sade Düz Liste (Her satır kart değil, ince iç ayraçlı doğal liste)
+        // Sade Düz Liste
         if (uiState.filteredAccounts.isEmpty()) {
             Box(
                 modifier = Modifier
@@ -412,13 +420,13 @@ fun ConnectionsScreen(
             ) {
                 Column(horizontalAlignment = Alignment.CenterHorizontally) {
                     Text(
-                        text = "Eşleşen hesap bulunamadı",
+                        text = strings.emptyMatchesTitle,
                         style = MaterialTheme.typography.titleLarge,
                         color = palette.textPrimary
                     )
                     Spacer(modifier = Modifier.height(4.dp))
                     Text(
-                        text = "Aramayı temizleyip tekrar deneyebilirsin.",
+                        text = strings.emptyMatchesSubtitle,
                         style = MaterialTheme.typography.bodyMedium,
                         color = palette.textSecondary
                     )
@@ -481,6 +489,7 @@ private fun AccountListRow(
     onOpenInstagram: () -> Unit
 ) {
     val palette = LocalInstallowPalette.current
+    val strings = LocalAppStrings.current
     val statusColor = when (account.category) {
         RelationCategory.NON_FOLLOWER -> AccentCoral
         RelationCategory.FAN -> AccentBlue
@@ -519,7 +528,7 @@ private fun AccountListRow(
             val metaParts = buildList {
                 add("@${account.username}")
                 if (account.followerCount != null) {
-                    add("${formatFollowerCountTr(account.followerCount)} takipçi")
+                    add("${formatFollowerCount(account.followerCount, strings.language)}${strings.followerCountSuffix}")
                 }
             }.joinToString(" · ")
 
@@ -537,14 +546,14 @@ private fun AccountListRow(
                 horizontalArrangement = Arrangement.spacedBy(6.dp)
             ) {
                 Text(
-                    text = account.category.labelTr,
+                    text = strings.categoryLabel(account.category),
                     style = MaterialTheme.typography.labelSmall,
                     color = statusColor,
                     fontWeight = FontWeight.Medium
                 )
                 if (account.relevantTimestamp > 0L) {
                     Text(
-                        text = "· ${formatEpochSecondsTr(account.relevantTimestamp)}",
+                        text = "· ${formatEpochSeconds(account.relevantTimestamp, strings)}",
                         style = MaterialTheme.typography.labelSmall,
                         color = palette.textMuted,
                         maxLines = 1,
@@ -560,7 +569,7 @@ private fun AccountListRow(
         ) {
             Icon(
                 imageVector = Icons.AutoMirrored.Rounded.OpenInNew,
-                contentDescription = "Instagram'da Aç",
+                contentDescription = strings.openInInstagramDesc,
                 tint = palette.textMuted,
                 modifier = Modifier.size(18.dp)
             )
@@ -582,6 +591,7 @@ private fun SmartQueueCard(
     modifier: Modifier = Modifier
 ) {
     val palette = LocalInstallowPalette.current
+    val strings = LocalAppStrings.current
     GlassCard(
         modifier = modifier,
         containerColor = palette.surfaceElevated,
@@ -593,14 +603,14 @@ private fun SmartQueueCard(
             verticalAlignment = Alignment.CenterVertically
         ) {
             Text(
-                text = "Sıralı İnceleme · ${index + 1} / $total",
+                text = String.format(Locale.ROOT, strings.smartQueueHeaderFormat, index + 1, total),
                 style = MaterialTheme.typography.labelLarge,
                 color = palette.textPrimary
             )
             IconButton(onClick = onClose, modifier = Modifier.size(24.dp)) {
                 Icon(
                     imageVector = Icons.Rounded.Close,
-                    contentDescription = "Kapat",
+                    contentDescription = strings.closeDesc,
                     tint = palette.textSecondary,
                     modifier = Modifier.size(17.dp)
                 )
@@ -621,7 +631,7 @@ private fun SmartQueueCard(
                     color = palette.textPrimary
                 )
                 Text(
-                    text = "@${account.username} · ${formatEpochSecondsTr(account.iFollowedAt)}",
+                    text = "@${account.username} · ${formatEpochSeconds(account.iFollowedAt, strings)}",
                     style = MaterialTheme.typography.labelSmall,
                     color = palette.textSecondary
                 )
@@ -646,7 +656,7 @@ private fun SmartQueueCard(
             ) {
                 Icon(Icons.AutoMirrored.Rounded.OpenInNew, null, modifier = Modifier.size(15.dp))
                 Spacer(Modifier.width(4.dp))
-                Text("IG'de Aç", style = MaterialTheme.typography.labelMedium)
+                Text(strings.openInIgShort, style = MaterialTheme.typography.labelMedium)
             }
             Button(
                 onClick = onMarkUnfollowed,
@@ -660,7 +670,7 @@ private fun SmartQueueCard(
             ) {
                 Icon(Icons.Rounded.PersonRemove, null, modifier = Modifier.size(15.dp))
                 Spacer(Modifier.width(4.dp))
-                Text("Çıktım", style = MaterialTheme.typography.labelMedium)
+                Text(strings.markedUnfollowedShort, style = MaterialTheme.typography.labelMedium)
             }
             OutlinedButton(
                 onClick = onWhitelist,
@@ -678,10 +688,10 @@ private fun SmartQueueCard(
             TextButton(onClick = onPrev, enabled = index > 0) {
                 Icon(Icons.AutoMirrored.Rounded.ArrowBack, null, modifier = Modifier.size(15.dp))
                 Spacer(Modifier.width(4.dp))
-                Text("Önceki")
+                Text(strings.prevButton)
             }
             TextButton(onClick = onNext) {
-                Text(if (index + 1 >= total) "Tamamla" else "Sonraki")
+                Text(if (index + 1 >= total) strings.finishButton else strings.nextButton)
                 Spacer(Modifier.width(4.dp))
                 Icon(Icons.AutoMirrored.Rounded.ArrowForward, null, modifier = Modifier.size(15.dp))
             }
@@ -699,6 +709,7 @@ private fun AccountDetailSheetContent(
     onMarkUnfollowed: () -> Unit
 ) {
     val palette = LocalInstallowPalette.current
+    val strings = LocalAppStrings.current
     var selectedTag by remember(account.username) { mutableStateOf(account.customTag) }
     var noteText by remember(account.username) { mutableStateOf(account.customNote) }
 
@@ -729,7 +740,7 @@ private fun AccountDetailSheetContent(
                 Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
                     CategoryBadge(account.category)
                     if (account.isCloseFriend) {
-                        PillBadge("Yakın Arkadaş", AccentEmerald)
+                        PillBadge(strings.closeFriendBadge, AccentEmerald)
                     }
                 }
             }
@@ -738,7 +749,7 @@ private fun AccountDetailSheetContent(
         GlassCard(containerColor = palette.surface, padding = 14.dp) {
             if (account.followerCount != null) {
                 Text(
-                    text = "Takipçi Sayısı: ${formatFollowerCountTr(account.followerCount)}",
+                    text = "${strings.followerCountDetailPrefix}${formatFollowerCount(account.followerCount, strings.language)}",
                     style = MaterialTheme.typography.bodyMedium,
                     fontWeight = FontWeight.SemiBold,
                     color = palette.textPrimary
@@ -747,7 +758,7 @@ private fun AccountDetailSheetContent(
             }
             if (account.followedMeAt != null) {
                 Text(
-                    text = "Seni Takip Tarihi: ${formatEpochSecondsTr(account.followedMeAt)}",
+                    text = "${strings.followedMeDatePrefix}${formatEpochSeconds(account.followedMeAt, strings)}",
                     style = MaterialTheme.typography.bodyMedium,
                     color = palette.textSecondary
                 )
@@ -755,7 +766,7 @@ private fun AccountDetailSheetContent(
             if (account.iFollowedAt != null) {
                 Spacer(modifier = Modifier.height(4.dp))
                 Text(
-                    text = "Senin Takip Tarihin: ${formatEpochSecondsTr(account.iFollowedAt)}",
+                    text = "${strings.iFollowedDatePrefix}${formatEpochSeconds(account.iFollowedAt, strings)}",
                     style = MaterialTheme.typography.bodyMedium,
                     color = palette.textSecondary
                 )
@@ -763,7 +774,7 @@ private fun AccountDetailSheetContent(
             if (account.pendingRequestAt != null) {
                 Spacer(modifier = Modifier.height(4.dp))
                 Text(
-                    text = "İstek Gönderim Tarihi: ${formatEpochSecondsTr(account.pendingRequestAt)}",
+                    text = "${strings.pendingDatePrefix}${formatEpochSeconds(account.pendingRequestAt, strings)}",
                     style = MaterialTheme.typography.bodyMedium,
                     color = palette.textSecondary
                 )
@@ -782,12 +793,12 @@ private fun AccountDetailSheetContent(
         ) {
             Column(modifier = Modifier.weight(1f)) {
                 Text(
-                    text = "Beyaz Liste",
+                    text = strings.whitelistSwitchTitle,
                     style = MaterialTheme.typography.titleMedium,
                     color = palette.textPrimary
                 )
                 Text(
-                    text = "Takip etmeyenler uyarısından hariç tutar.",
+                    text = strings.whitelistSwitchSubtitle,
                     style = MaterialTheme.typography.labelSmall,
                     color = palette.textSecondary
                 )
@@ -801,7 +812,7 @@ private fun AccountDetailSheetContent(
 
         Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
             Text(
-                text = "Etiket",
+                text = strings.tagSectionTitle,
                 style = MaterialTheme.typography.titleMedium,
                 color = palette.textPrimary
             )
@@ -809,7 +820,7 @@ private fun AccountDetailSheetContent(
                 horizontalArrangement = Arrangement.spacedBy(8.dp),
                 verticalArrangement = Arrangement.spacedBy(6.dp)
             ) {
-                PresetTags.ALL.forEach { tag ->
+                strings.presetTags.forEach { tag ->
                     val isSelected = selectedTag == tag
                     FilterChip(
                         selected = isSelected,
@@ -828,8 +839,8 @@ private fun AccountDetailSheetContent(
             value = noteText,
             onValueChange = { noteText = it.take(300) },
             modifier = Modifier.fillMaxWidth(),
-            label = { Text("Kişisel Not") },
-            placeholder = { Text("Not ekle...") },
+            label = { Text(strings.personalNoteLabel) },
+            placeholder = { Text(strings.personalNotePlaceholder) },
             shape = RoundedCornerShape(12.dp),
             maxLines = 2
         )
@@ -843,7 +854,7 @@ private fun AccountDetailSheetContent(
                 modifier = Modifier.weight(1f),
                 shape = RoundedCornerShape(12.dp)
             ) {
-                Text("Kaydet")
+                Text(strings.saveButton)
             }
 
             Button(
@@ -857,7 +868,7 @@ private fun AccountDetailSheetContent(
             ) {
                 Icon(Icons.AutoMirrored.Rounded.OpenInNew, null, modifier = Modifier.size(17.dp))
                 Spacer(Modifier.width(6.dp))
-                Text("Instagram'da Aç")
+                Text(strings.openInstagramButton)
             }
         }
 
@@ -873,7 +884,7 @@ private fun AccountDetailSheetContent(
             ) {
                 Icon(Icons.Rounded.PersonRemove, null, modifier = Modifier.size(17.dp))
                 Spacer(Modifier.width(6.dp))
-                Text("Takipten Çıktım Olarak İşaretle")
+                Text(strings.markUnfollowedButton)
             }
         }
     }

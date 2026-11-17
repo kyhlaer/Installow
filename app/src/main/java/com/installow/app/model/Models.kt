@@ -50,6 +50,17 @@ enum class ThemePreference(val labelTr: String) {
     SYSTEM("Sistem Varsayılanı")
 }
 
+enum class LanguagePreference {
+    SYSTEM,
+    TURKISH,
+    ENGLISH
+}
+
+enum class AppLanguage {
+    TR,
+    EN
+}
+
 @Immutable
 data class InstaAccount(
     val username: String,

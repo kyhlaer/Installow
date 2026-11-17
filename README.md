@@ -1,6 +1,6 @@
 # 🕵🏻 Installow - by Kyhlaer
 
-**by kyhlaer** · Sürüm `1.32`
+**by kyhlaer** · Sürüm `1.33`
 
 Instagram takipçi ve takip edilen analizini gizlilik odaklı, modern ve güvenli bir arayüzle cihaz üzerinde gerçekleştiren Android (Jetpack Compose) uygulaması.
 
@@ -13,7 +13,7 @@ Instagram takipçi ve takip edilen analizini gizlilik odaklı, modern ve güvenl
 - **Çift Veri Kaynağı:**
   - **Resmi Instagram Arşivi (Sıfır Risk):** Meta veri indirme merkezinden alınan ZIP / JSON / HTML dosyalarını tamamen çevrimdışı analiz eder.
   - **Canlı Web Senkronizasyonu (Yavaş Mod):** İstekler arası gecikme, mola, 15 dk soğuma koruması ve hız uyarısında otomatik 60 dk kilitleme ile salt-okunur senkronizasyon.
-- **Kişiselleştirilebilir Tema:** Koyu, Açık ve Sistem varsayılanı tema seçenekleri; sekmeler arası yatay kaydırma desteği.
+- **Kişiselleştirilebilir Tema & Dil:** Koyu, Açık ve Sistem varsayılanı tema seçenekleri; **Türkçe / English / Sistem** dil seçimi; sekmeler arası yatay kaydırma desteği.
 
 ## Siber Güvenlik ve Gizlilik Önlemleri
 
@@ -34,3 +34,11 @@ Instagram takipçi ve takip edilen analizini gizlilik odaklı, modern ve güvenl
 # Optimize edilmiş (R8 + kaynak sıkıştırmalı) Release APK derle
 ./gradlew assembleRelease
 ```
+
+## Güncelleme Notları (Release Notes)
+
+Detaylı sürüm geçmişi için [CHANGELOG.md](CHANGELOG.md) dosyasına bakabilirsiniz.
+
+- **v1.33:** Tam İngilizce/Türkçe/Sistem dil desteği (`LanguagePreference`, anlık `Dil / Language` seçicisi), yerel dil uyumlu tarih/takipçi/grafik/CSV formatları, uygulama içi Sürüm Notları diyaloğu.
+- **v1.32:** `Installow by kyhlaer` açılış ekranı, Android Keystore AES-256-GCM yerel şifreleme, sıkılaştırılmış WebView & 256-bit Nonce JS köprüsü, `FLAG_SECURE`, Zip Slip/ZIP bombası/CSV enjeksiyon korumaları ve R8 optimizasyonu.
+

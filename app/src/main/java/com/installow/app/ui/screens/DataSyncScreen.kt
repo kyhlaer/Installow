@@ -28,10 +28,12 @@ import androidx.compose.material.icons.rounded.ExpandLess
 import androidx.compose.material.icons.rounded.ExpandMore
 import androidx.compose.material.icons.rounded.FileUpload
 import androidx.compose.material.icons.rounded.Language
+import androidx.compose.material.icons.rounded.NewReleases
 import androidx.compose.material.icons.rounded.RestartAlt
 import androidx.compose.material.icons.rounded.Security
 import androidx.compose.material.icons.rounded.Share
 import androidx.compose.material.icons.rounded.VerifiedUser
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.CircularProgressIndicator
@@ -40,6 +42,7 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -52,14 +55,17 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import com.installow.app.model.LanguagePreference
 import com.installow.app.model.ThemePreference
 import com.installow.app.ui.components.GlassCard
 import com.installow.app.ui.components.PillBadge
 import com.installow.app.ui.components.shareTextReport
+import com.installow.app.ui.i18n.LocalAppStrings
 import com.installow.app.ui.theme.AccentCoral
 import com.installow.app.ui.theme.AccentEmerald
 import com.installow.app.ui.theme.LocalInstallowPalette
 import com.installow.app.ui.viewmodel.InstallowUiState
+import java.util.Locale
 
 @Composable
 fun DataSyncScreen(
@@ -69,13 +75,16 @@ fun DataSyncScreen(
     onSimulateChange: () -> Unit,
     onResetDemo: () -> Unit,
     onThemeSelect: (ThemePreference) -> Unit,
+    onLanguageSelect: (LanguagePreference) -> Unit,
     onBuildExportText: () -> String,
     onRunSecurityAudit: () -> Unit,
     onClearWebCookies: () -> Unit
 ) {
     val palette = LocalInstallowPalette.current
+    val strings = LocalAppStrings.current
     val context = LocalContext.current
     var showGuide by remember { mutableStateOf(false) }
+    var showReleaseNotes by remember { mutableStateOf(false) }
 
     LazyColumn(
         modifier = Modifier.fillMaxSize(),
@@ -85,12 +94,12 @@ fun DataSyncScreen(
         item {
             Column {
                 Text(
-                    text = "Veri & Ayarlar",
+                    text = strings.dataSettingsTitle,
                     style = MaterialTheme.typography.headlineMedium,
                     color = palette.textPrimary
                 )
                 Text(
-                    text = "Hesap verilerini yükle, dışa aktar ve görünümü düzenle",
+                    text = strings.dataSettingsSubtitle,
                     style = MaterialTheme.typography.bodyMedium,
                     color = palette.textSecondary
                 )
@@ -106,17 +115,19 @@ fun DataSyncScreen(
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     Text(
-                        text = "Resmi Instagram Arşivi",
+                        text = strings.officialArchiveTitle,
                         style = MaterialTheme.typography.titleLarge,
-                        color = palette.textPrimary
+                        color = palette.textPrimary,
+                        modifier = Modifier.weight(1f)
                     )
-                    PillBadge("Sıfır Risk · Önerilen", AccentEmerald)
+                    Spacer(modifier = Modifier.width(8.dp))
+                    PillBadge(strings.zeroRiskRecommendedBadge, AccentEmerald)
                 }
 
                 Spacer(modifier = Modifier.height(6.dp))
 
                 Text(
-                    text = "Instagram sunucularına tek bir istek bile göndermez. Meta'nın indirme merkezinden aldığın ZIP veya JSON dosyalarını cihazında çevrimdışı analiz eder.",
+                    text = strings.officialArchiveDesc,
                     style = MaterialTheme.typography.bodyMedium,
                     color = palette.textSecondary
                 )
@@ -140,11 +151,11 @@ fun DataSyncScreen(
                             color = palette.accentContrastFg
                         )
                         Spacer(Modifier.width(8.dp))
-                        Text("Dosyalar İşleniyor...", fontWeight = FontWeight.SemiBold)
+                        Text(strings.processingFilesText, fontWeight = FontWeight.SemiBold)
                     } else {
                         Icon(Icons.Rounded.FileUpload, null, modifier = Modifier.size(18.dp))
                         Spacer(Modifier.width(8.dp))
-                        Text("ZIP / JSON / HTML Seç", fontWeight = FontWeight.SemiBold)
+                        Text(strings.selectArchiveButton, fontWeight = FontWeight.SemiBold)
                     }
                 }
 
@@ -161,7 +172,7 @@ fun DataSyncScreen(
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     Text(
-                        text = "Dosya Instagram'dan nasıl alınır?",
+                        text = strings.howToExportTitle,
                         style = MaterialTheme.typography.labelLarge,
                         color = palette.textPrimary
                     )
@@ -180,10 +191,10 @@ fun DataSyncScreen(
                             .padding(top = 10.dp),
                         verticalArrangement = Arrangement.spacedBy(6.dp)
                     ) {
-                        GuideStep("1", "Instagram > Profil > Menü (≡) > Hesaplar Merkezi'ne gir.")
-                        GuideStep("2", "Bilgilerin ve izinlerin > Bilgilerini dışa aktar > Dışa aktarım oluştur.")
-                        GuideStep("3", "Sadece 'Takipçiler ve takip edilenler'i seç, Format olarak 'JSON' seç.")
-                        GuideStep("4", "İnen .zip dosyasını veya içindeki JSON dosyalarını yukarıdan seç.")
+                        GuideStep("1", strings.guideStep1)
+                        GuideStep("2", strings.guideStep2)
+                        GuideStep("3", strings.guideStep3)
+                        GuideStep("4", strings.guideStep4)
                     }
                 }
             }
@@ -198,17 +209,19 @@ fun DataSyncScreen(
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     Text(
-                        text = "Canlı Web Senkronizasyonu",
+                        text = strings.liveWebSyncTitle,
                         style = MaterialTheme.typography.titleLarge,
-                        color = palette.textPrimary
+                        color = palette.textPrimary,
+                        modifier = Modifier.weight(1f)
                     )
-                    PillBadge("Yavaş Mod", palette.textSecondary)
+                    Spacer(modifier = Modifier.width(8.dp))
+                    PillBadge(strings.slowModeBadge, palette.textSecondary)
                 }
 
                 Spacer(modifier = Modifier.height(6.dp))
 
                 Text(
-                    text = "Uygulama içi tarayıcıdan instagram.com oturumunla salt-okunur çekim yapar. Her sayfa arasında 2-3 sn bekler ve 15 dk soğuma koruması uygular.",
+                    text = strings.liveWebSyncDesc,
                     style = MaterialTheme.typography.bodyMedium,
                     color = palette.textSecondary
                 )
@@ -222,62 +235,47 @@ fun DataSyncScreen(
                 ) {
                     Icon(Icons.Rounded.Language, null, modifier = Modifier.size(18.dp))
                     Spacer(Modifier.width(8.dp))
-                    Text("Instagram Web ile Bağlan", fontWeight = FontWeight.SemiBold)
+                    Text(strings.connectInstagramWebButton, fontWeight = FontWeight.SemiBold)
                 }
             }
         }
 
-        // Görünüm (Segmented Kontrol)
+        // Görünüm & Dil (Segmented Kontroller)
         item {
             GlassCard(padding = 16.dp) {
                 Text(
-                    text = "Görünüm",
+                    text = strings.appearanceTitle,
                     style = MaterialTheme.typography.titleMedium,
                     color = palette.textPrimary
                 )
                 Spacer(modifier = Modifier.height(10.dp))
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .clip(RoundedCornerShape(12.dp))
-                        .background(palette.surfaceElevated)
-                        .padding(4.dp),
-                    horizontalArrangement = Arrangement.spacedBy(4.dp)
-                ) {
-                    val items = listOf(
-                        ThemePreference.DARK to "Koyu",
-                        ThemePreference.LIGHT to "Açık",
-                        ThemePreference.SYSTEM to "Sistem"
-                    )
-                    items.forEach { (pref, title) ->
-                        val selected = uiState.themePreference == pref
-                        Box(
-                            modifier = Modifier
-                                .weight(1f)
-                                .clip(RoundedCornerShape(9.dp))
-                                .background(
-                                    if (selected) palette.surface else androidx.compose.ui.graphics.Color.Transparent
-                                )
-                                .then(
-                                    if (selected) {
-                                        Modifier.border(0.75.dp, palette.border, RoundedCornerShape(9.dp))
-                                    } else {
-                                        Modifier
-                                    }
-                                )
-                                .clickable { onThemeSelect(pref) }
-                                .padding(vertical = 8.dp),
-                            contentAlignment = Alignment.Center
-                        ) {
-                            Text(
-                                text = title,
-                                style = MaterialTheme.typography.labelLarge,
-                                fontWeight = if (selected) FontWeight.SemiBold else FontWeight.Medium,
-                                color = if (selected) palette.textPrimary else palette.textSecondary
-                            )
-                        }
-                    }
-                }
+                SegmentedPreferenceRow(
+                    options = listOf(
+                        ThemePreference.DARK to strings.themeDark,
+                        ThemePreference.LIGHT to strings.themeLight,
+                        ThemePreference.SYSTEM to strings.themeSystem
+                    ),
+                    selectedValue = uiState.themePreference,
+                    onSelect = onThemeSelect
+                )
+
+                Spacer(modifier = Modifier.height(14.dp))
+
+                Text(
+                    text = strings.languageTitle,
+                    style = MaterialTheme.typography.titleMedium,
+                    color = palette.textPrimary
+                )
+                Spacer(modifier = Modifier.height(10.dp))
+                SegmentedPreferenceRow(
+                    options = listOf(
+                        LanguagePreference.TURKISH to strings.langTurkish,
+                        LanguagePreference.ENGLISH to strings.langEnglish,
+                        LanguagePreference.SYSTEM to strings.langSystem
+                    ),
+                    selectedValue = uiState.languagePreference,
+                    onSelect = onLanguageSelect
+                )
             }
         }
 
@@ -292,6 +290,7 @@ fun DataSyncScreen(
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     Row(
+                        modifier = Modifier.weight(1f),
                         verticalAlignment = Alignment.CenterVertically,
                         horizontalArrangement = Arrangement.spacedBy(8.dp)
                     ) {
@@ -302,13 +301,18 @@ fun DataSyncScreen(
                             modifier = Modifier.size(20.dp)
                         )
                         Text(
-                            text = "Siber Güvenlik Kalkanı",
+                            text = strings.cyberShieldTitle,
                             style = MaterialTheme.typography.titleLarge,
                             color = palette.textPrimary
                         )
                     }
+                    Spacer(modifier = Modifier.width(8.dp))
                     PillBadge(
-                        text = if (checks.isEmpty()) "Aktif" else "$passedCount/${checks.size} Doğrulandı",
+                        text = if (checks.isEmpty()) {
+                            strings.cyberShieldActiveBadge
+                        } else {
+                            String.format(Locale.ROOT, strings.cyberShieldVerifiedFormat, passedCount, checks.size)
+                        },
                         color = if (checks.isEmpty() || passedCount == checks.size) AccentEmerald else AccentCoral
                     )
                 }
@@ -316,11 +320,11 @@ fun DataSyncScreen(
                 Spacer(modifier = Modifier.height(10.dp))
 
                 Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
-                    SecurityMeasureLine("AES-256-GCM Keystore ile yerel veri şifrelemesi")
-                    SecurityMeasureLine("Yalnızca HTTPS & Meta/Instagram alan adı whitelist")
-                    SecurityMeasureLine("256-bit Nonce JS köprüsü ve FLAG_SECURE ekran kilidi")
-                    SecurityMeasureLine("Zip Slip, ZIP bombası ve CSV enjeksiyon koruması")
-                    SecurityMeasureLine("Bulut yedekleme ve şifresiz trafik (cleartext) kapalı")
+                    SecurityMeasureLine(strings.shieldLineAes)
+                    SecurityMeasureLine(strings.shieldLineHttps)
+                    SecurityMeasureLine(strings.shieldLineBridge)
+                    SecurityMeasureLine(strings.shieldLineZipCsv)
+                    SecurityMeasureLine(strings.shieldLineBackup)
                 }
 
                 if (checks.isNotEmpty()) {
@@ -376,7 +380,7 @@ fun DataSyncScreen(
                 ) {
                     Icon(Icons.Rounded.Security, null, modifier = Modifier.size(17.dp))
                     Spacer(Modifier.width(8.dp))
-                    Text("Güvenlik Testini Çalıştır", fontWeight = FontWeight.SemiBold)
+                    Text(strings.runSecurityTestButton, fontWeight = FontWeight.SemiBold)
                 }
 
                 Spacer(modifier = Modifier.height(8.dp))
@@ -388,7 +392,7 @@ fun DataSyncScreen(
                 ) {
                     Icon(Icons.Rounded.DeleteSweep, null, modifier = Modifier.size(17.dp))
                     Spacer(Modifier.width(8.dp))
-                    Text("Web Oturum Çerezlerini Temizle", fontWeight = FontWeight.SemiBold)
+                    Text(strings.clearWebCookiesButton, fontWeight = FontWeight.SemiBold)
                 }
             }
         }
@@ -398,13 +402,19 @@ fun DataSyncScreen(
             GlassCard(padding = 0.dp) {
                 SettingsActionRow(
                     icon = Icons.Rounded.Share,
-                    title = "Aktif Listeyi CSV Olarak Paylaş",
-                    subtitle = "${uiState.selectedTab.labelTr} (${uiState.filteredAccounts.size} kişi)",
+                    title = strings.exportCsvRowTitle,
+                    subtitle = String.format(
+                        Locale.ROOT,
+                        strings.exportCsvRowSubtitleFormat,
+                        strings.tabLabel(uiState.selectedTab),
+                        uiState.filteredAccounts.size
+                    ),
                     onClick = {
                         shareTextReport(
                             context = context,
-                            title = "Installow Raporu (${uiState.selectedTab.labelTr})",
-                            content = onBuildExportText()
+                            title = "${strings.shareReportSubjectPrefix}${strings.tabLabel(uiState.selectedTab)}",
+                            content = onBuildExportText(),
+                            chooserTitle = strings.shareChooserTitle
                         )
                     }
                 )
@@ -415,8 +425,8 @@ fun DataSyncScreen(
                 )
                 SettingsActionRow(
                     icon = Icons.Rounded.AutoFixHigh,
-                    title = "Değişim Simülasyonu Çalıştır",
-                    subtitle = "Takipten çıkan ve yeni takipçi örneği ekler",
+                    title = strings.simulateRowTitle,
+                    subtitle = strings.simulateRowSubtitle,
                     onClick = onSimulateChange
                 )
                 HorizontalDivider(
@@ -426,16 +436,27 @@ fun DataSyncScreen(
                 )
                 SettingsActionRow(
                     icon = Icons.Rounded.RestartAlt,
-                    title = "Demo Verisine Sıfırla",
-                    subtitle = "Örnek takipçi ve takip listesini geri yükler",
+                    title = strings.resetDemoRowTitle,
+                    subtitle = strings.resetDemoRowSubtitle,
                     onClick = onResetDemo
+                )
+                HorizontalDivider(
+                    modifier = Modifier.padding(start = 52.dp),
+                    thickness = 0.5.dp,
+                    color = palette.border
+                )
+                SettingsActionRow(
+                    icon = Icons.Rounded.NewReleases,
+                    title = strings.releaseNotesRowTitle,
+                    subtitle = strings.releaseNotesRowSubtitle,
+                    onClick = { showReleaseNotes = true }
                 )
             }
         }
 
         item {
             Text(
-                text = "Installow v1.32 · by kyhlaer",
+                text = strings.footerSignature,
                 style = MaterialTheme.typography.labelSmall,
                 color = palette.textMuted,
                 textAlign = TextAlign.Center,
@@ -443,6 +464,82 @@ fun DataSyncScreen(
                     .fillMaxWidth()
                     .padding(vertical = 8.dp)
             )
+        }
+    }
+
+    if (showReleaseNotes) {
+        AlertDialog(
+            onDismissRequest = { showReleaseNotes = false },
+            containerColor = palette.surfaceElevated,
+            titleContentColor = palette.textPrimary,
+            textContentColor = palette.textSecondary,
+            title = {
+                Text(
+                    text = strings.releaseNotesDialogTitle,
+                    style = MaterialTheme.typography.titleLarge
+                )
+            },
+            text = {
+                Text(
+                    text = strings.releaseNotesDialogBody,
+                    style = MaterialTheme.typography.bodyMedium
+                )
+            },
+            confirmButton = {
+                TextButton(onClick = { showReleaseNotes = false }) {
+                    Text(
+                        text = strings.releaseNotesClose,
+                        color = palette.textPrimary,
+                        fontWeight = FontWeight.SemiBold
+                    )
+                }
+            }
+        )
+    }
+}
+
+@Composable
+private fun <T> SegmentedPreferenceRow(
+    options: List<Pair<T, String>>,
+    selectedValue: T,
+    onSelect: (T) -> Unit
+) {
+    val palette = LocalInstallowPalette.current
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clip(RoundedCornerShape(12.dp))
+            .background(palette.surfaceElevated)
+            .padding(4.dp),
+        horizontalArrangement = Arrangement.spacedBy(4.dp)
+    ) {
+        options.forEach { (value, title) ->
+            val selected = selectedValue == value
+            Box(
+                modifier = Modifier
+                    .weight(1f)
+                    .clip(RoundedCornerShape(9.dp))
+                    .background(
+                        if (selected) palette.surface else androidx.compose.ui.graphics.Color.Transparent
+                    )
+                    .then(
+                        if (selected) {
+                            Modifier.border(0.75.dp, palette.border, RoundedCornerShape(9.dp))
+                        } else {
+                            Modifier
+                        }
+                    )
+                    .clickable { onSelect(value) }
+                    .padding(vertical = 8.dp),
+                contentAlignment = Alignment.Center
+            ) {
+                Text(
+                    text = title,
+                    style = MaterialTheme.typography.labelLarge,
+                    fontWeight = if (selected) FontWeight.SemiBold else FontWeight.Medium,
+                    color = if (selected) palette.textPrimary else palette.textSecondary
+                )
+            }
         }
     }
 }

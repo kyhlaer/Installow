@@ -70,6 +70,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import kotlinx.coroutines.delay
 import com.installow.app.model.AppScreen
 import com.installow.app.model.ThemePreference
+import com.installow.app.ui.i18n.LocalAppStrings
 import com.installow.app.ui.screens.AnalyticsScreen
 import com.installow.app.ui.screens.ConnectionsScreen
 import com.installow.app.ui.screens.DashboardScreen
@@ -116,7 +117,10 @@ class MainActivity : ComponentActivity() {
                 )
             }
 
-            InstallowTheme(themePreference = uiState.themePreference) {
+            InstallowTheme(
+                themePreference = uiState.themePreference,
+                languagePreference = uiState.languagePreference
+            ) {
                 InstallowRootApp(viewModel = viewModel)
             }
         }
@@ -127,6 +131,7 @@ class MainActivity : ComponentActivity() {
 private fun InstallowRootApp(viewModel: InstallowViewModel) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     val palette = LocalInstallowPalette.current
+    val strings = LocalAppStrings.current
     val context = LocalContext.current
     val snackbarHostState = remember { SnackbarHostState() }
     var showExitDialog by remember { mutableStateOf(false) }
@@ -256,6 +261,7 @@ private fun InstallowRootApp(viewModel: InstallowViewModel) {
                         onSimulateChange = viewModel::simulateSnapshotChange,
                         onResetDemo = { viewModel.resetToDemoData(silent = false) },
                         onThemeSelect = viewModel::setThemePreference,
+                        onLanguageSelect = viewModel::setLanguagePreference,
                         onBuildExportText = viewModel::exportCurrentListText,
                         onRunSecurityAudit = viewModel::runSecurityAudit,
                         onClearWebCookies = { viewModel.clearWebSessionCookies(context) }
@@ -273,13 +279,13 @@ private fun InstallowRootApp(viewModel: InstallowViewModel) {
             textContentColor = palette.textSecondary,
             title = {
                 Text(
-                    text = "Uygulamadan çıkılsın mı?",
+                    text = strings.exitDialogTitle,
                     style = MaterialTheme.typography.titleLarge
                 )
             },
             text = {
                 Text(
-                    text = "Installow'dan çıkmak istediğine emin misin?",
+                    text = strings.exitDialogMessage,
                     style = MaterialTheme.typography.bodyMedium
                 )
             },
@@ -291,7 +297,7 @@ private fun InstallowRootApp(viewModel: InstallowViewModel) {
                     }
                 ) {
                     Text(
-                        text = "Çık",
+                        text = strings.exitConfirm,
                         color = MaterialTheme.colorScheme.error,
                         fontWeight = FontWeight.SemiBold
                     )
@@ -300,7 +306,7 @@ private fun InstallowRootApp(viewModel: InstallowViewModel) {
             dismissButton = {
                 TextButton(onClick = { showExitDialog = false }) {
                     Text(
-                        text = "Vazgeç",
+                        text = strings.exitCancel,
                         color = palette.textPrimary
                     )
                 }
@@ -372,6 +378,7 @@ private fun InstallowBottomBar(
     onSelect: (AppScreen) -> Unit
 ) {
     val palette = LocalInstallowPalette.current
+    val strings = LocalAppStrings.current
     val items = listOf(
         NavTabItem(AppScreen.DASHBOARD, Icons.Rounded.GridView, Icons.Outlined.GridView),
         NavTabItem(AppScreen.CONNECTIONS, Icons.Rounded.Group, Icons.Outlined.Group),
@@ -408,13 +415,13 @@ private fun InstallowBottomBar(
                 ) {
                     Icon(
                         imageVector = if (selected) item.selectedIcon else item.unselectedIcon,
-                        contentDescription = item.screen.labelTr,
+                        contentDescription = strings.screenLabel(item.screen),
                         tint = if (selected) palette.textPrimary else palette.textMuted,
                         modifier = Modifier.size(22.dp)
                     )
                     Spacer(modifier = Modifier.height(3.dp))
                     Text(
-                        text = item.screen.labelTr,
+                        text = strings.screenLabel(item.screen),
                         style = MaterialTheme.typography.labelSmall,
                         fontWeight = if (selected) FontWeight.SemiBold else FontWeight.Normal,
                         color = if (selected) palette.textPrimary else palette.textMuted

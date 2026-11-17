@@ -6,6 +6,8 @@ import android.security.keystore.KeyProperties
 import android.webkit.CookieManager
 import android.webkit.WebStorage
 import androidx.compose.runtime.Immutable
+import com.installow.app.model.AppLanguage
+import com.installow.app.ui.i18n.stringsFor
 import java.net.URI
 import java.net.URLDecoder
 import java.nio.charset.StandardCharsets
@@ -173,7 +175,8 @@ object SecurityManager {
         }
     }
 
-    fun runSecuritySelfChecks(): List<SecurityCheckItem> {
+    fun runSecuritySelfChecks(language: AppLanguage = AppLanguage.TR): List<SecurityCheckItem> {
+        val strings = stringsFor(language)
         val checks = mutableListOf<SecurityCheckItem>()
 
         // 1. HTTPS & Domain Whitelist doğrulaması
@@ -186,8 +189,8 @@ object SecurityManager {
             !isAllowedWebSyncUrl("file:///etc/hosts")
         checks += SecurityCheckItem(
             id = "url_whitelist",
-            title = "HTTPS & Alan Adı Whitelist",
-            detail = if (urlPass) "HTTP, javascript:, file: ve sahte domainler engellendi." else "Alan adı doğrulaması başarısız!",
+            title = strings.checkUrlTitle,
+            detail = if (urlPass) strings.checkUrlPass else strings.checkUrlFail,
             passed = urlPass
         )
 
@@ -198,8 +201,8 @@ object SecurityManager {
             extractSafeIntentFallbackUrl(evilIntent) == null
         checks += SecurityCheckItem(
             id = "intent_guard",
-            title = "Intent Yönlendirme Kalkanı",
-            detail = if (intentPass) "Sadece doğrulanmış Meta/Instagram fallback linklerine izin veriliyor." else "Intent fallback filtresi başarısız!",
+            title = strings.checkIntentTitle,
+            detail = if (intentPass) strings.checkIntentPass else strings.checkIntentFail,
             passed = intentPass
         )
 
@@ -210,8 +213,8 @@ object SecurityManager {
             !isSafeZipEntryName("/etc/passwd")
         checks += SecurityCheckItem(
             id = "zip_slip",
-            title = "Zip Slip & Arşiv Koruması",
-            detail = if (zipPass) "Yol geçişi (..) ve mutlak yol saldırıları engellendi." else "Zip yolu doğrulaması başarısız!",
+            title = strings.checkZipTitle,
+            detail = if (zipPass) strings.checkZipPass else strings.checkZipFail,
             passed = zipPass
         )
 
@@ -222,8 +225,8 @@ object SecurityManager {
             !sanitizeCsvCell("normal_user\r\n=evil").contains('\n')
         checks += SecurityCheckItem(
             id = "csv_injection",
-            title = "CSV Enjeksiyon Koruması",
-            detail = if (csvPass) "Formül başlangıçları (=, +, -, @) ve satır atlamaları nötralize edildi." else "CSV temizleme testi başarısız!",
+            title = strings.checkCsvTitle,
+            detail = if (csvPass) strings.checkCsvPass else strings.checkCsvFail,
             passed = csvPass
         )
 
@@ -236,8 +239,8 @@ object SecurityManager {
             !constantTimeEquals(t1, null)
         checks += SecurityCheckItem(
             id = "bridge_nonce",
-            title = "JS Köprüsü 256-bit Nonce Kilidi",
-            detail = if (tokenPass) "Sabit zamanlı token doğrulaması aktif (256-bit)." else "Token testi başarısız!",
+            title = strings.checkNonceTitle,
+            detail = if (tokenPass) strings.checkNoncePass else strings.checkNonceFail,
             passed = tokenPass
         )
 
@@ -251,8 +254,12 @@ object SecurityManager {
         val aesPass = aesResult.getOrDefault(false)
         checks += SecurityCheckItem(
             id = "aes_gcm",
-            title = "AES-256-GCM Keystore Şifreleme",
-            detail = if (aesPass) "Donanım destekli Android Keystore AES-256-GCM şifreleme/çözme doğrulandı." else "Keystore test edilemedi: ${aesResult.exceptionOrNull()?.localizedMessage ?: "Bilinmeyen hata"}",
+            title = strings.checkAesTitle,
+            detail = if (aesPass) {
+                strings.checkAesPass
+            } else {
+                "${strings.checkAesFailPrefix}${aesResult.exceptionOrNull()?.localizedMessage ?: strings.unknownErrorText}"
+            },
             passed = aesPass
         )
 
