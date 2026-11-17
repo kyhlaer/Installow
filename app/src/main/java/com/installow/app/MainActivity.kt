@@ -37,10 +37,12 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.BarChart
 import androidx.compose.material.icons.outlined.GridView
 import androidx.compose.material.icons.outlined.Group
+import androidx.compose.material.icons.outlined.Storage
 import androidx.compose.material.icons.outlined.Tune
 import androidx.compose.material.icons.rounded.BarChart
 import androidx.compose.material.icons.rounded.GridView
 import androidx.compose.material.icons.rounded.Group
+import androidx.compose.material.icons.rounded.Storage
 import androidx.compose.material.icons.rounded.Tune
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.HorizontalDivider
@@ -70,12 +72,14 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import kotlinx.coroutines.delay
 import com.installow.app.model.AppScreen
 import com.installow.app.model.ThemePreference
+import com.installow.app.ui.components.AccountSwitcherBottomSheet
 import com.installow.app.ui.i18n.LocalAppStrings
 import com.installow.app.ui.screens.AnalyticsScreen
 import com.installow.app.ui.screens.ConnectionsScreen
 import com.installow.app.ui.screens.DashboardScreen
-import com.installow.app.ui.screens.DataSyncScreen
+import com.installow.app.ui.screens.DataScreen
 import com.installow.app.ui.screens.InstagramWebSyncDialog
+import com.installow.app.ui.screens.SettingsScreen
 import com.installow.app.ui.theme.InstallowTheme
 import com.installow.app.ui.theme.LocalInstallowPalette
 import com.installow.app.ui.viewmodel.InstallowViewModel
@@ -165,7 +169,12 @@ private fun InstallowRootApp(viewModel: InstallowViewModel) {
         }
     }
 
-    BackHandler(enabled = !showSplash && !uiState.showWebSyncDialog && uiState.selectedAccountForSheet == null) {
+    BackHandler(
+        enabled = !showSplash &&
+            !uiState.showWebSyncDialog &&
+            !uiState.showAccountSwitcherSheet &&
+            uiState.selectedAccountForSheet == null
+    ) {
         showExitDialog = true
     }
 
@@ -222,15 +231,18 @@ private fun InstallowRootApp(viewModel: InstallowViewModel) {
                     AppScreen.DASHBOARD -> DashboardScreen(
                         uiState = uiState,
                         onOpenTab = viewModel::openConnectionsWithTab,
-                        onNavigateScreen = viewModel::navigateTo,
+                        onOpenAccountSwitcher = { viewModel.setShowAccountSwitcherSheet(true) },
                         onStartQueue = viewModel::startReviewQueue,
                         onOpenFilePicker = { filePickerLauncher.launch(arrayOf("*/*")) },
+                        onOpenWebSync = { viewModel.setShowWebSyncDialog(true) },
+                        onRetryLookup = { viewModel.lookupAndAddAccount(uiState.activeOwnerUsername) },
                         onSimulateChange = viewModel::simulateSnapshotChange
                     )
 
                     AppScreen.CONNECTIONS -> ConnectionsScreen(
                         uiState = uiState,
                         onSelectTab = viewModel::selectTab,
+                        onSelectQuickFilter = viewModel::selectQuickFilter,
                         onSearchChange = viewModel::updateSearchQuery,
                         onSortChange = viewModel::updateSortOption,
                         onToggleHideWhitelisted = viewModel::toggleHideWhitelistedInNonFollowers,
@@ -242,7 +254,8 @@ private fun InstallowRootApp(viewModel: InstallowViewModel) {
                         onNextQueue = viewModel::nextInQueue,
                         onPrevQueue = viewModel::previousInQueue,
                         onStopQueue = viewModel::stopQueue,
-                        onBuildExportText = viewModel::exportCurrentListText
+                        onBuildExportText = viewModel::exportCurrentListText,
+                        onShowMessage = viewModel::showTransientMessage
                     )
 
                     AppScreen.ANALYTICS -> AnalyticsScreen(
@@ -254,15 +267,20 @@ private fun InstallowRootApp(viewModel: InstallowViewModel) {
                         }
                     )
 
-                    AppScreen.DATA_SYNC -> DataSyncScreen(
+                    AppScreen.DATA -> DataScreen(
                         uiState = uiState,
+                        onOpenAccountSwitcher = { viewModel.setShowAccountSwitcherSheet(true) },
                         onOpenFilePicker = { filePickerLauncher.launch(arrayOf("*/*")) },
                         onOpenWebSync = { viewModel.setShowWebSyncDialog(true) },
                         onSimulateChange = viewModel::simulateSnapshotChange,
                         onResetDemo = { viewModel.resetToDemoData(silent = false) },
+                        onBuildExportText = viewModel::exportCurrentListText
+                    )
+
+                    AppScreen.SETTINGS -> SettingsScreen(
+                        uiState = uiState,
                         onThemeSelect = viewModel::setThemePreference,
                         onLanguageSelect = viewModel::setLanguagePreference,
-                        onBuildExportText = viewModel::exportCurrentListText,
                         onRunSecurityAudit = viewModel::runSecurityAudit,
                         onClearWebCookies = { viewModel.clearWebSessionCookies(context) }
                     )
@@ -320,6 +338,18 @@ private fun InstallowRootApp(viewModel: InstallowViewModel) {
             onSyncComplete = { owner, followers, following ->
                 viewModel.applyWebSyncData(owner, followers, following)
             }
+        )
+    }
+
+    if (uiState.showAccountSwitcherSheet) {
+        AccountSwitcherBottomSheet(
+            workspaces = uiState.workspaces,
+            activeWorkspaceId = uiState.activeWorkspaceId,
+            isLookingUp = uiState.isLookingUpAccount,
+            onDismiss = { viewModel.setShowAccountSwitcherSheet(false) },
+            onLookupAndAdd = viewModel::lookupAndAddAccount,
+            onSwitchWorkspace = viewModel::switchWorkspace,
+            onRemoveWorkspace = viewModel::removeWorkspace
         )
     }
 
@@ -383,7 +413,8 @@ private fun InstallowBottomBar(
         NavTabItem(AppScreen.DASHBOARD, Icons.Rounded.GridView, Icons.Outlined.GridView),
         NavTabItem(AppScreen.CONNECTIONS, Icons.Rounded.Group, Icons.Outlined.Group),
         NavTabItem(AppScreen.ANALYTICS, Icons.Rounded.BarChart, Icons.Outlined.BarChart),
-        NavTabItem(AppScreen.DATA_SYNC, Icons.Rounded.Tune, Icons.Outlined.Tune)
+        NavTabItem(AppScreen.DATA, Icons.Rounded.Storage, Icons.Outlined.Storage),
+        NavTabItem(AppScreen.SETTINGS, Icons.Rounded.Tune, Icons.Outlined.Tune)
     )
 
     Column(

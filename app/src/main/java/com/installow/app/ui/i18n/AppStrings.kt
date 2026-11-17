@@ -35,7 +35,8 @@ sealed interface AppStrings {
     val navDashboard: String
     val navConnections: String
     val navAnalytics: String
-    val navDataSync: String
+    val navData: String
+    val navSettings: String
     val exitDialogTitle: String
     val exitDialogMessage: String
     val exitConfirm: String
@@ -68,6 +69,7 @@ sealed interface AppStrings {
     val sortUsernameAsc: String
     val sortUsernameDesc: String
     val sourceDemo: String
+    val sourcePublicLookup: String
     val sourceOfficialExport: String
     val sourceWebSync: String
     val presetTags: List<String>
@@ -104,6 +106,43 @@ sealed interface AppStrings {
     val smartQueueTitle: String
     val smartQueueDescFormat: String
     val startReviewButton: String
+    val unfollowedByMeRowTitle: String
+    val accountListNoticePrivateTitle: String
+    val accountListNoticePrivateDesc: String
+    val accountListNoticeLoginDesc: String
+    val accountListNoticeNotFoundDesc: String
+    val accountListNoticeErrorDesc: String
+    val loadArchiveActionShort: String
+    val webSignInActionShort: String
+    val retryActionShort: String
+    // Account Switcher & Public Lookup
+    val accountsSheetTitle: String
+    val accountsSheetSubtitle: String
+    val addOrLookupAccountTitle: String
+    val usernameInputPlaceholder: String
+    val lookupAndAddButton: String
+    val lookingUpAccountButton: String
+    val savedAccountsTitle: String
+    val activeBadge: String
+    val privateBadge: String
+    val publicBadge: String
+    val removeAccountDesc: String
+    val accountCountsShortFormat: String
+    val publicLookupBannerTitle: String
+    val publicLookupBannerDesc: String
+    val copyUsernameDesc: String
+    val usernameCopiedMsgFormat: String
+    val allTagsFilterChip: String
+    val onlyNotesFilterChip: String
+    val onlyCloseFriendsChip: String
+    // Data & Settings Headers
+    val dataTabTitle: String
+    val dataTabSubtitle: String
+    val settingsTabTitle: String
+    val settingsTabSubtitle: String
+    val accountsCardTitle: String
+    val accountsCardDescFormat: String
+    val manageAccountsButton: String
     // Connections Screen
     val connectionsCountFormat: String
     val sortContentDesc: String
@@ -264,6 +303,15 @@ sealed interface AppStrings {
     val importSuccessFormat: String
     val importFailedPrefix: String
     val unknownErrorText: String
+    val invalidUsernameMsg: String
+    val publicLookupFullSuccessFormat: String
+    val publicLookupPrivateMsgFormat: String
+    val publicLookupCountsOnlyMsgFormat: String
+    val publicLookupNotFoundMsgFormat: String
+    val publicLookupErrorMsg: String
+    val accountSwitchedMsgFormat: String
+    val accountRemovedMsgFormat: String
+    val cannotRemoveLastAccountMsg: String
     val webSyncSourceLabelFormat: String
     val webSyncSuccessFormat: String
     val csvReportHeaderFormat: String
@@ -293,7 +341,8 @@ sealed interface AppStrings {
         AppScreen.DASHBOARD -> navDashboard
         AppScreen.CONNECTIONS -> navConnections
         AppScreen.ANALYTICS -> navAnalytics
-        AppScreen.DATA_SYNC -> navDataSync
+        AppScreen.DATA -> navData
+        AppScreen.SETTINGS -> navSettings
     }
 
     fun categoryLabel(category: RelationCategory): String = when (category) {
@@ -336,6 +385,7 @@ sealed interface AppStrings {
 
     fun dataSourceLabel(type: DataSourceType): String = when (type) {
         DataSourceType.DEMO -> sourceDemo
+        DataSourceType.PUBLIC_LOOKUP -> sourcePublicLookup
         DataSourceType.OFFICIAL_EXPORT -> sourceOfficialExport
         DataSourceType.WEB_SYNC -> sourceWebSync
     }
@@ -346,7 +396,8 @@ object TrStrings : AppStrings {
     override val navDashboard = "Panel"
     override val navConnections = "Kişiler"
     override val navAnalytics = "Analiz"
-    override val navDataSync = "Veri"
+    override val navData = "Veri"
+    override val navSettings = "Ayarlar"
     override val exitDialogTitle = "Uygulamadan çıkılsın mı?"
     override val exitDialogMessage = "Installow'dan çıkmak istediğine emin misin?"
     override val exitConfirm = "Çık"
@@ -378,6 +429,7 @@ object TrStrings : AppStrings {
     override val sortUsernameAsc = "Kullanıcı Adı (A → Z)"
     override val sortUsernameDesc = "Kullanıcı Adı (Z → A)"
     override val sourceDemo = "Demo Veri Seti"
+    override val sourcePublicLookup = "Herkese Açık Profil"
     override val sourceOfficialExport = "Instagram Resmi Arşiv"
     override val sourceWebSync = "Canlı Web Senkronizasyonu"
     override val presetTags = listOf(
@@ -420,6 +472,41 @@ object TrStrings : AppStrings {
     override val smartQueueTitle = "Sıralı İnceleme"
     override val smartQueueDescFormat = "Seni takip etmeyen %d hesabı sırayla inceleyip Instagram'da açabilir veya beyaz listeye alabilirsin."
     override val startReviewButton = "İncelemeyi Başlat"
+    override val unfollowedByMeRowTitle = "Takipten Çıktıkların"
+    override val accountListNoticePrivateTitle = "Bu hesap gizli görünüyor"
+    override val accountListNoticePrivateDesc = "Takipçi ve takip sayıları alındı. Hesap gizli olduğu için kişi listesini görmek adına Resmi ZIP yükleyin veya Web ile giriş yapın."
+    override val accountListNoticeLoginDesc = "Profilin takipçi ve takip sayıları çekildi. Instagram tam kişi listelerini yalnızca oturum açıkken veya Resmi ZIP ile açar; devam etmek için ZIP yükleyin veya Web ile giriş yapın."
+    override val accountListNoticeNotFoundDesc = "Kullanıcı adı Instagram'da bulunamadı. Yazımı kontrol edip tekrar deneyin."
+    override val accountListNoticeErrorDesc = "Profil bilgisine şu an ulaşılamadı. Bağlantınızı kontrol edip tekrar deneyin veya ZIP yükleyin."
+    override val loadArchiveActionShort = "ZIP Yükle"
+    override val webSignInActionShort = "Web ile Bağlan"
+    override val retryActionShort = "Tekrar Dene"
+    override val accountsSheetTitle = "Instagram Hesapları"
+    override val accountsSheetSubtitle = "Kullanıcı adı sorgula, yeni hesap ekle veya hesaplar arası geç"
+    override val addOrLookupAccountTitle = "Kullanıcı Adı ile Hesap Ekle / Aç"
+    override val usernameInputPlaceholder = "Örn: kyhlaer"
+    override val lookupAndAddButton = "Hesabı Getir & Ekle"
+    override val lookingUpAccountButton = "Profil Sorgulanıyor..."
+    override val savedAccountsTitle = "Kayıtlı Hesaplar (%d)"
+    override val activeBadge = "Aktif"
+    override val privateBadge = "Gizli"
+    override val publicBadge = "Açık"
+    override val removeAccountDesc = "Hesabı Kaldır"
+    override val accountCountsShortFormat = "%d takipçi · %d takip"
+    override val publicLookupBannerTitle = "Kullanıcı Adıyla Hızlı Veri Çek"
+    override val publicLookupBannerDesc = "ZIP veya giriş olmadan sadece kullanıcı adını yazarak profil sayılarını ve uygunsa açık listeleri getirir."
+    override val copyUsernameDesc = "Kullanıcı adını kopyala"
+    override val usernameCopiedMsgFormat = "@%s panoya kopyalandı."
+    override val allTagsFilterChip = "Tümü"
+    override val onlyNotesFilterChip = "Notlular"
+    override val onlyCloseFriendsChip = "Yakın Arkadaşlar"
+    override val dataTabTitle = "Veri Merkezi"
+    override val dataTabSubtitle = "Hesap ekle, kullanıcı adından çek veya arşiv/web ile senkronize et"
+    override val settingsTabTitle = "Ayarlar"
+    override val settingsTabSubtitle = "Tema, dil, güvenlik kalkanı ve sürüm bilgileri"
+    override val accountsCardTitle = "Hesap Yönetimi"
+    override val accountsCardDescFormat = "Aktif: @%s · Toplam %d kayıtlı hesap"
+    override val manageAccountsButton = "Hesapları Yönet / Değiştir"
     override val connectionsCountFormat = "%d kişi · %s"
     override val sortContentDesc = "Sırala"
     override val shareContentDesc = "Paylaş"
@@ -520,7 +607,7 @@ object TrStrings : AppStrings {
     override val releaseNotesRowTitle = "Sürüm Notları (v1.33)"
     override val releaseNotesRowSubtitle = "Bu güncellemedeki yenilikleri ve iyileştirmeleri gör"
     override val releaseNotesDialogTitle = "Installow v1.33 — Sürüm Notları"
-    override val releaseNotesDialogBody = "• İngilizce dil desteği eklendi (Türkçe / English / Sistem).\n• Takipçi sayısı formatları (B/K), tarihler, grafik ayları, CSV raporları ve güvenlik denetim sonuçları seçilen dile uyarlandı.\n• Veri & Ayarlar ekranına anlık Dil / Language seçicisi eklendi.\n• R8 kod küçültme ve AES-256-GCM güvenlik kalkanı korundu."
+    override val releaseNotesDialogBody = "• İngilizce / Türkçe / Sistem dil desteği eklendi.\n• Veri ve Ayarlar ayrı sekmelere bölündü; başlık butonları ferahlaştırıldı ve by kyhlaer imzası eklendi.\n• Çoklu Instagram hesabı ekleme, hesaplar arası tek dokunuşla geçiş ve kullanıcı adından doğrudan profil/takip çekimi eklendi.\n• Kişiler ekranına etiket/not filtresi ve tek dokunuşla kullanıcı adı kopyalama eklendi.\n• AES-256-GCM şifreleme ve R8 optimizasyonu korundu."
     override val releaseNotesClose = "Kapat"
     override val footerSignature = "Installow v1.33 · by kyhlaer"
     override val webSyncHeaderTitle = "Instagram Web Bağlantısı"
@@ -575,6 +662,15 @@ object TrStrings : AppStrings {
     override val importSuccessFormat = "İçe aktarıldı: %d takipçi, %d takip edilen."
     override val importFailedPrefix = "Dosya okunamadı: "
     override val unknownErrorText = "Bilinmeyen hata"
+    override val invalidUsernameMsg = "Geçerli bir Instagram kullanıcı adı girin."
+    override val publicLookupFullSuccessFormat = "@%s verileri çekildi: %d takipçi, %d takip edilen."
+    override val publicLookupPrivateMsgFormat = "@%s gizli hesap (%d takipçi, %d takip). Kişi listesi için ZIP yükleyin veya Web ile giriş yapın."
+    override val publicLookupCountsOnlyMsgFormat = "@%s sayıları alındı (%d takipçi, %d takip). Liste detayı için Web girişi veya Resmi ZIP gerekir."
+    override val publicLookupNotFoundMsgFormat = "@%s bulunamadı. Kullanıcı adını kontrol edin."
+    override val publicLookupErrorMsg = "Instagram profili sorgulanırken ağ hatası oluştu."
+    override val accountSwitchedMsgFormat = "Aktif hesap @%s olarak değiştirildi."
+    override val accountRemovedMsgFormat = "@%s kayıtlı hesaplardan kaldırıldı."
+    override val cannotRemoveLastAccountMsg = "En az bir hesap kalmalıdır."
     override val webSyncSourceLabelFormat = "Canlı Web Senkronizasyonu (@%s)"
     override val webSyncSuccessFormat = "@%s senkronize edildi: %d takipçi, %d takip edilen."
     override val csvReportHeaderFormat = "Installow Raporu — %s"
@@ -605,7 +701,8 @@ object EnStrings : AppStrings {
     override val navDashboard = "Home"
     override val navConnections = "People"
     override val navAnalytics = "Insights"
-    override val navDataSync = "Data"
+    override val navData = "Data"
+    override val navSettings = "Settings"
     override val exitDialogTitle = "Exit Installow?"
     override val exitDialogMessage = "Are you sure you want to close Installow?"
     override val exitConfirm = "Exit"
@@ -637,6 +734,7 @@ object EnStrings : AppStrings {
     override val sortUsernameAsc = "Username (A → Z)"
     override val sortUsernameDesc = "Username (Z → A)"
     override val sourceDemo = "Demo Dataset"
+    override val sourcePublicLookup = "Public Profile"
     override val sourceOfficialExport = "Official Instagram Archive"
     override val sourceWebSync = "Live Web Sync"
     override val presetTags = listOf(
@@ -679,6 +777,41 @@ object EnStrings : AppStrings {
     override val smartQueueTitle = "Step-by-Step Review"
     override val smartQueueDescFormat = "Review %d accounts not following you back one by one, open them on Instagram, or add to whitelist."
     override val startReviewButton = "Start Review"
+    override val unfollowedByMeRowTitle = "Unfollowed by You"
+    override val accountListNoticePrivateTitle = "This account is private"
+    override val accountListNoticePrivateDesc = "Follower and following counts were fetched. Since this profile is private, import the Official ZIP or sign in via Instagram Web to view full lists."
+    override val accountListNoticeLoginDesc = "Public follower and following counts were fetched. Instagram requires a signed-in session or Official ZIP to display full follower lists — upload a ZIP or sign in via Web."
+    override val accountListNoticeNotFoundDesc = "Username was not found on Instagram. Check the spelling and try again."
+    override val accountListNoticeErrorDesc = "Could not reach Instagram profile info right now. Check your connection or import an Official ZIP."
+    override val loadArchiveActionShort = "Import ZIP"
+    override val webSignInActionShort = "Web Sign-In"
+    override val retryActionShort = "Retry"
+    override val accountsSheetTitle = "Instagram Accounts"
+    override val accountsSheetSubtitle = "Look up a username, add accounts, or switch anytime"
+    override val addOrLookupAccountTitle = "Add / Open by Username"
+    override val usernameInputPlaceholder = "e.g. kyhlaer"
+    override val lookupAndAddButton = "Fetch & Add Account"
+    override val lookingUpAccountButton = "Checking Profile..."
+    override val savedAccountsTitle = "Saved Accounts (%d)"
+    override val activeBadge = "Active"
+    override val privateBadge = "Private"
+    override val publicBadge = "Public"
+    override val removeAccountDesc = "Remove Account"
+    override val accountCountsShortFormat = "%d followers · %d following"
+    override val publicLookupBannerTitle = "Quick Lookup by Username"
+    override val publicLookupBannerDesc = "Fetch live counts (and public lists when available) just by typing a username — no ZIP required."
+    override val copyUsernameDesc = "Copy username"
+    override val usernameCopiedMsgFormat = "@%s copied to clipboard."
+    override val allTagsFilterChip = "All"
+    override val onlyNotesFilterChip = "With Notes"
+    override val onlyCloseFriendsChip = "Close Friends"
+    override val dataTabTitle = "Data Hub"
+    override val dataTabSubtitle = "Manage accounts, fetch by username, or import/sync data"
+    override val settingsTabTitle = "Settings"
+    override val settingsTabSubtitle = "Theme, language, security shield, and version info"
+    override val accountsCardTitle = "Account Management"
+    override val accountsCardDescFormat = "Active: @%s · %d saved accounts"
+    override val manageAccountsButton = "Manage / Switch Accounts"
     override val connectionsCountFormat = "%d accounts · %s"
     override val sortContentDesc = "Sort"
     override val shareContentDesc = "Share"
@@ -779,7 +912,7 @@ object EnStrings : AppStrings {
     override val releaseNotesRowTitle = "Release Notes (v1.33)"
     override val releaseNotesRowSubtitle = "View what's new and improved in this update"
     override val releaseNotesDialogTitle = "Installow v1.33 — Release Notes"
-    override val releaseNotesDialogBody = "• Added full English language support (Türkçe / English / System).\n• Localized follower count units (K/B), dates, chart months, CSV exports, and security self-check outputs.\n• Added instant Language / Dil switcher in Data & Settings.\n• Kept R8 minification and AES-256-GCM security hardening."
+    override val releaseNotesDialogBody = "• Added full English / Turkish / System language support.\n• Separated Data and Settings into dedicated tabs; refined header button spacing and added by kyhlaer branding.\n• Added multi-account switching, quick account creation, and direct username public lookup.\n• Added quick tag/note filters and 1-tap username copy in People.\n• Retained AES-256-GCM encryption and R8 minification."
     override val releaseNotesClose = "Close"
     override val footerSignature = "Installow v1.33 · by kyhlaer"
     override val webSyncHeaderTitle = "Instagram Web Connection"
@@ -834,6 +967,15 @@ object EnStrings : AppStrings {
     override val importSuccessFormat = "Imported: %d followers, %d following."
     override val importFailedPrefix = "Failed to read file: "
     override val unknownErrorText = "Unknown error"
+    override val invalidUsernameMsg = "Enter a valid Instagram username."
+    override val publicLookupFullSuccessFormat = "@%s synced: %d followers, %d following."
+    override val publicLookupPrivateMsgFormat = "@%s is private (%d followers, %d following). Import ZIP or sign in via Web for full lists."
+    override val publicLookupCountsOnlyMsgFormat = "@%s counts fetched (%d followers, %d following). Web sign-in or ZIP needed for full lists."
+    override val publicLookupNotFoundMsgFormat = "@%s was not found. Please check the username."
+    override val publicLookupErrorMsg = "Network error while checking the Instagram profile."
+    override val accountSwitchedMsgFormat = "Switched active account to @%s."
+    override val accountRemovedMsgFormat = "Removed @%s from saved accounts."
+    override val cannotRemoveLastAccountMsg = "At least one account must remain."
     override val webSyncSourceLabelFormat = "Live Web Sync (@%s)"
     override val webSyncSuccessFormat = "@%s synced: %d followers, %d following."
     override val csvReportHeaderFormat = "Installow Report — %s"

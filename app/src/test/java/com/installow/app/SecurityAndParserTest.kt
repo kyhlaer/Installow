@@ -1,8 +1,17 @@
 package com.installow.app
 
 import com.installow.app.data.InstagramExportParser
+import com.installow.app.data.InstagramPublicLookup
+import com.installow.app.data.LocalRepository
+import com.installow.app.data.PersistedAppState
+import com.installow.app.model.AccountAnnotation
+import com.installow.app.model.AccountWorkspace
 import com.installow.app.model.AppLanguage
+import com.installow.app.model.DataSourceType
 import com.installow.app.model.LanguagePreference
+import com.installow.app.model.ListAccessStatus
+import com.installow.app.model.Snapshot
+import com.installow.app.model.ThemePreference
 import com.installow.app.ui.i18n.resolveAppLanguage
 import com.installow.app.ui.i18n.stringsFor
 import com.installow.app.util.SecurityManager
@@ -158,6 +167,138 @@ class SecurityAndParserTest {
         val en = stringsFor(AppLanguage.EN)
         assertEquals("Panel", tr.navDashboard)
         assertEquals("Home", en.navDashboard)
+        assertEquals("Veri", tr.navData)
+        assertEquals("Ayarlar", tr.navSettings)
+        assertEquals("Data", en.navData)
+        assertEquals("Settings", en.navSettings)
         assertEquals(tr.presetTags.size, en.presetTags.size)
+    }
+
+    @Test
+    fun publicLookup_parsesWebProfileJsonAndHtmlCounts_andDetectsPrivate() {
+        val sampleJson = """
+            {
+              "data": {
+                "user": {
+                  "id": "123456789",
+                  "username": "kyhlaer",
+                  "full_name": "Kyhlaer Dev",
+                  "is_private": false,
+                  "edge_followed_by": { "count": 4820 },
+                  "edge_follow": { "count": 315 }
+                }
+              }
+            }
+        """.trimIndent()
+
+        val parsedJson = InstagramPublicLookup.parseWebProfileJson("kyhlaer", sampleJson)
+        assertNotNull(parsedJson)
+        assertEquals("kyhlaer", parsedJson?.username)
+        assertEquals("Kyhlaer Dev", parsedJson?.displayName)
+        assertEquals("123456789", parsedJson?.userId)
+        assertEquals(false, parsedJson?.isPrivate)
+        assertEquals(4820, parsedJson?.followersCount)
+        assertEquals(315, parsedJson?.followingCount)
+
+        val privateHtml = """
+            <html><head>
+            <meta property="og:title" content="Gizli Hesap (@gizli_hesap) • Instagram photos and videos" />
+            <meta property="og:description" content="12,5 Bin Takipçi, 410 Takip, 24 Gönderi" />
+            <script>{"is_private":true,"profilePage_987654321":true}</script>
+            </head></html>
+        """.trimIndent()
+
+        val parsedHtml = InstagramPublicLookup.parsePublicHtmlProfile("gizli_hesap", privateHtml)
+        assertNotNull(parsedHtml)
+        assertEquals("Gizli Hesap", parsedHtml?.displayName)
+        assertEquals(true, parsedHtml?.isPrivate)
+        assertEquals(12500, parsedHtml?.followersCount)
+        assertEquals(410, parsedHtml?.followingCount)
+        assertEquals(ListAccessStatus.PRIVATE_ACCOUNT, parsedHtml?.listAccessStatus)
+
+        assertEquals(1_450_000, InstagramPublicLookup.parseCompactCount("1.45M"))
+        assertEquals(2_300_000, InstagramPublicLookup.parseCompactCount("2,3 Mn"))
+    }
+
+    @Test
+    fun localRepository_roundTripsMultiAccountWorkspaces_andMigratesLegacySingleAccount() {
+        val ws1 = AccountWorkspace(
+            id = "hesap_bir",
+            ownerUsername = "hesap_bir",
+            displayName = "Birinci Hesap",
+            dataSourceType = DataSourceType.OFFICIAL_EXPORT,
+            snapshots = listOf(
+                Snapshot(
+                    id = "snap-1",
+                    createdAtMillis = 1700000000000L,
+                    sourceLabel = "ZIP",
+                    followers = mapOf("a" to 1700000000L),
+                    following = mapOf("b" to 1700000100L),
+                    reportedFollowersCount = 120,
+                    reportedFollowingCount = 85,
+                    isPrivateAccount = false
+                )
+            ),
+            annotations = mapOf("b" to AccountAnnotation(isWhitelisted = true, customTag = "Aile", customNote = "Not")),
+            reportedFollowersCount = 120,
+            reportedFollowingCount = 85,
+            isPrivateAccount = false,
+            listAccessStatus = ListAccessStatus.FULL_DATA
+        )
+        val ws2 = AccountWorkspace(
+            id = "hesap_iki",
+            ownerUsername = "hesap_iki",
+            displayName = "İkinci Hesap",
+            dataSourceType = DataSourceType.PUBLIC_LOOKUP,
+            reportedFollowersCount = 950,
+            reportedFollowingCount = 210,
+            isPrivateAccount = true,
+            listAccessStatus = ListAccessStatus.PRIVATE_ACCOUNT
+        )
+
+        val state = PersistedAppState(
+            workspaces = listOf(ws1, ws2),
+            activeWorkspaceId = "hesap_iki",
+            themePreference = ThemePreference.LIGHT,
+            languagePreference = LanguagePreference.ENGLISH,
+            hideWhitelistedInNonFollowers = false
+        )
+
+        val serialized = LocalRepository.serializeStateJson(state).toString()
+        val restored = LocalRepository.parseStateJson(serialized)
+        assertNotNull(restored)
+        assertEquals(2, restored?.workspaces?.size)
+        assertEquals("hesap_iki", restored?.activeWorkspaceId)
+        assertEquals(ThemePreference.LIGHT, restored?.themePreference)
+        assertEquals(LanguagePreference.ENGLISH, restored?.languagePreference)
+        assertEquals(false, restored?.hideWhitelistedInNonFollowers)
+        assertEquals(true, restored?.workspaces?.last()?.isPrivateAccount)
+        assertEquals(ListAccessStatus.PRIVATE_ACCOUNT, restored?.workspaces?.last()?.listAccessStatus)
+        assertEquals("Not", restored?.workspaces?.first()?.annotations?.get("b")?.customNote)
+
+        val legacyJson = """
+            {
+              "activeOwnerUsername": "eski_kullanici",
+              "dataSourceType": "WEB_SYNC",
+              "themePreference": "DARK",
+              "languagePreference": "TURKISH",
+              "hideWhitelistedInNonFollowers": true,
+              "snapshots": [
+                {
+                  "id": "legacy-1",
+                  "createdAtMillis": 1700000000000,
+                  "sourceLabel": "Web",
+                  "followers": {"x": 100},
+                  "following": {"y": 200}
+                }
+              ],
+              "annotations": {}
+            }
+        """.trimIndent()
+        val migrated = LocalRepository.parseStateJson(legacyJson)
+        assertNotNull(migrated)
+        assertEquals(1, migrated?.workspaces?.size)
+        assertEquals("eski_kullanici", migrated?.workspaces?.first()?.ownerUsername)
+        assertEquals(DataSourceType.WEB_SYNC, migrated?.workspaces?.first()?.dataSourceType)
     }
 }

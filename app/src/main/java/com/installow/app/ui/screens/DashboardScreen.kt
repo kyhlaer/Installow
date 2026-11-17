@@ -1,5 +1,6 @@
 package com.installow.app.ui.screens
 
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -21,14 +22,21 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.rounded.KeyboardArrowRight
 import androidx.compose.material.icons.automirrored.rounded.PlaylistPlay
-import androidx.compose.material.icons.rounded.FileUpload
+import androidx.compose.material.icons.rounded.Download
+import androidx.compose.material.icons.rounded.KeyboardArrowDown
+import androidx.compose.material.icons.rounded.Language
+import androidx.compose.material.icons.rounded.Lock
+import androidx.compose.material.icons.rounded.Public
+import androidx.compose.material.icons.rounded.Refresh
 import androidx.compose.material.icons.rounded.Search
+import androidx.compose.material.icons.rounded.WarningAmber
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedButton
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
@@ -38,9 +46,9 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
-import com.installow.app.model.AppScreen
 import com.installow.app.model.DataSourceType
 import com.installow.app.model.FilterTab
+import com.installow.app.model.ListAccessStatus
 import com.installow.app.ui.components.DonutSegment
 import com.installow.app.ui.components.GlassCard
 import com.installow.app.ui.components.RelationshipDonutChart
@@ -60,9 +68,11 @@ import java.util.Locale
 fun DashboardScreen(
     uiState: InstallowUiState,
     onOpenTab: (FilterTab) -> Unit,
-    onNavigateScreen: (AppScreen) -> Unit,
+    onOpenAccountSwitcher: () -> Unit,
     onStartQueue: () -> Unit,
     onOpenFilePicker: () -> Unit,
+    onOpenWebSync: () -> Unit,
+    onRetryLookup: () -> Unit,
     onSimulateChange: () -> Unit
 ) {
     val palette = LocalInstallowPalette.current
@@ -73,33 +83,50 @@ fun DashboardScreen(
         contentPadding = PaddingValues(horizontal = 18.dp, vertical = 14.dp),
         verticalArrangement = Arrangement.spacedBy(14.dp)
     ) {
-        // Sade ve Güçlü Tipografik Başlık
+        // Başlık + by kyhlaer + Etkileşimli Hesap Seçici + Ferah Aksiyon Butonları
         item {
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
+                verticalAlignment = Alignment.Top
             ) {
                 Column(modifier = Modifier.weight(1f)) {
-                    Text(
-                        text = "Installow",
-                        style = MaterialTheme.typography.headlineMedium,
-                        fontWeight = FontWeight.Bold,
-                        color = palette.textPrimary
-                    )
+                    Row(
+                        verticalAlignment = Alignment.Bottom,
+                        horizontalArrangement = Arrangement.spacedBy(7.dp)
+                    ) {
+                        Text(
+                            text = "Installow",
+                            style = MaterialTheme.typography.headlineMedium,
+                            fontWeight = FontWeight.Bold,
+                            color = palette.textPrimary
+                        )
+                        Text(
+                            text = "by kyhlaer",
+                            style = MaterialTheme.typography.labelSmall,
+                            color = palette.textMuted,
+                            modifier = Modifier.padding(bottom = 3.dp)
+                        )
+                    }
+
+                    Spacer(modifier = Modifier.height(6.dp))
+
+                    val dotColor = when (uiState.dataSourceType) {
+                        DataSourceType.DEMO -> AccentAmber
+                        DataSourceType.PUBLIC_LOOKUP -> AccentBlue
+                        DataSourceType.OFFICIAL_EXPORT -> AccentEmerald
+                        DataSourceType.WEB_SYNC -> AccentEmerald
+                    }
                     Row(
                         modifier = Modifier
-                            .padding(top = 2.dp)
-                            .clip(RoundedCornerShape(6.dp))
-                            .clickable { onNavigateScreen(AppScreen.DATA_SYNC) },
+                            .clip(RoundedCornerShape(9.dp))
+                            .background(palette.surface)
+                            .border(0.75.dp, palette.border, RoundedCornerShape(9.dp))
+                            .clickable(onClick = onOpenAccountSwitcher)
+                            .padding(horizontal = 10.dp, vertical = 5.dp),
                         verticalAlignment = Alignment.CenterVertically,
                         horizontalArrangement = Arrangement.spacedBy(6.dp)
                     ) {
-                        val dotColor = when (uiState.dataSourceType) {
-                            DataSourceType.DEMO -> AccentAmber
-                            DataSourceType.OFFICIAL_EXPORT -> AccentEmerald
-                            DataSourceType.WEB_SYNC -> AccentBlue
-                        }
                         Box(
                             modifier = Modifier
                                 .size(6.dp)
@@ -111,41 +138,65 @@ fun DashboardScreen(
                             style = MaterialTheme.typography.labelMedium,
                             color = palette.textSecondary,
                             maxLines = 1,
-                            overflow = TextOverflow.Ellipsis
+                            overflow = TextOverflow.Ellipsis,
+                            modifier = Modifier.weight(1f, fill = false)
+                        )
+                        if (uiState.isPrivateAccount == true) {
+                            Icon(
+                                imageVector = Icons.Rounded.Lock,
+                                contentDescription = strings.privateBadge,
+                                tint = AccentAmber,
+                                modifier = Modifier.size(12.dp)
+                            )
+                        }
+                        Icon(
+                            imageVector = Icons.Rounded.KeyboardArrowDown,
+                            contentDescription = null,
+                            tint = palette.textMuted,
+                            modifier = Modifier.size(16.dp)
                         )
                     }
                 }
 
-                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    IconButton(
+                Spacer(modifier = Modifier.width(12.dp))
+
+                Row(
+                    horizontalArrangement = Arrangement.spacedBy(12.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                    modifier = Modifier.padding(top = 2.dp)
+                ) {
+                    Surface(
                         onClick = { onOpenTab(FilterTab.ALL_FOLLOWERS) },
-                        modifier = Modifier
-                            .size(38.dp)
-                            .clip(CircleShape)
-                            .background(palette.surface)
-                            .border(0.75.dp, palette.border, CircleShape)
+                        shape = CircleShape,
+                        color = palette.surface,
+                        border = BorderStroke(0.75.dp, palette.border),
+                        modifier = Modifier.size(40.dp)
                     ) {
-                        Icon(
-                            imageVector = Icons.Rounded.Search,
-                            contentDescription = strings.searchContentDesc,
-                            tint = palette.textPrimary,
-                            modifier = Modifier.size(18.dp)
-                        )
+                        Box(contentAlignment = Alignment.Center) {
+                            Icon(
+                                imageVector = Icons.Rounded.Search,
+                                contentDescription = strings.searchContentDesc,
+                                tint = palette.textPrimary,
+                                modifier = Modifier.size(19.dp)
+                            )
+                        }
                     }
-                    IconButton(
+
+                    Surface(
                         onClick = onOpenFilePicker,
-                        modifier = Modifier
-                            .size(38.dp)
-                            .clip(CircleShape)
-                            .background(palette.surface)
-                            .border(0.75.dp, palette.border, CircleShape)
+                        shape = CircleShape,
+                        color = palette.surface,
+                        border = BorderStroke(0.75.dp, palette.border),
+                        modifier = Modifier.size(40.dp)
                     ) {
-                        Icon(
-                            imageVector = Icons.Rounded.FileUpload,
-                            contentDescription = strings.uploadDataContentDesc,
-                            tint = palette.textPrimary,
-                            modifier = Modifier.size(18.dp)
-                        )
+                        Box(contentAlignment = Alignment.Center) {
+                            Icon(
+                                imageVector = Icons.Rounded.Download,
+                                contentDescription = strings.uploadDataContentDesc,
+                                tint = palette.textPrimary,
+                                modifier = Modifier.size(19.dp)
+                            )
+                        }
                     }
                 }
             }
@@ -204,6 +255,111 @@ fun DashboardScreen(
             }
         }
 
+        // Gizli Hesap / Oturum Gerektiren Liste Uyarısı
+        if (uiState.listAccessStatus != ListAccessStatus.FULL_DATA) {
+            item {
+                val (icon, tint, bodyText) = when (uiState.listAccessStatus) {
+                    ListAccessStatus.PRIVATE_ACCOUNT -> Triple(
+                        Icons.Rounded.Lock,
+                        AccentAmber,
+                        strings.accountListNoticePrivateDesc
+                    )
+                    ListAccessStatus.LOGIN_REQUIRED_FOR_LISTS -> Triple(
+                        Icons.Rounded.Public,
+                        AccentBlue,
+                        strings.accountListNoticeLoginDesc
+                    )
+                    ListAccessStatus.PROFILE_NOT_FOUND -> Triple(
+                        Icons.Rounded.WarningAmber,
+                        AccentCoral,
+                        strings.accountListNoticeNotFoundDesc
+                    )
+                    else -> Triple(
+                        Icons.Rounded.WarningAmber,
+                        AccentAmber,
+                        strings.accountListNoticeErrorDesc
+                    )
+                }
+
+                GlassCard(
+                    padding = 16.dp,
+                    borderColor = tint.copy(alpha = 0.45f)
+                ) {
+                    Row(
+                        verticalAlignment = Alignment.Top,
+                        horizontalArrangement = Arrangement.spacedBy(10.dp)
+                    ) {
+                        Icon(
+                            imageVector = icon,
+                            contentDescription = null,
+                            tint = tint,
+                            modifier = Modifier
+                                .padding(top = 2.dp)
+                                .size(18.dp)
+                        )
+                        Column(modifier = Modifier.weight(1f)) {
+                            if (uiState.listAccessStatus == ListAccessStatus.PRIVATE_ACCOUNT) {
+                                Text(
+                                    text = strings.accountListNoticePrivateTitle,
+                                    style = MaterialTheme.typography.titleMedium,
+                                    color = palette.textPrimary
+                                )
+                                Spacer(modifier = Modifier.height(2.dp))
+                            }
+                            Text(
+                                text = bodyText,
+                                style = MaterialTheme.typography.bodyMedium,
+                                color = palette.textSecondary
+                            )
+                        }
+                    }
+
+                    Spacer(modifier = Modifier.height(12.dp))
+
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        Button(
+                            onClick = onOpenWebSync,
+                            modifier = Modifier.weight(1f),
+                            shape = RoundedCornerShape(10.dp),
+                            colors = ButtonDefaults.buttonColors(
+                                containerColor = palette.accentContrastBg,
+                                contentColor = palette.accentContrastFg
+                            ),
+                            contentPadding = PaddingValues(vertical = 8.dp, horizontal = 10.dp)
+                        ) {
+                            Icon(Icons.Rounded.Language, null, modifier = Modifier.size(16.dp))
+                            Spacer(Modifier.width(5.dp))
+                            Text(strings.webSignInActionShort, style = MaterialTheme.typography.labelMedium)
+                        }
+
+                        OutlinedButton(
+                            onClick = onOpenFilePicker,
+                            modifier = Modifier.weight(1f),
+                            shape = RoundedCornerShape(10.dp),
+                            contentPadding = PaddingValues(vertical = 8.dp, horizontal = 10.dp)
+                        ) {
+                            Icon(Icons.Rounded.Download, null, modifier = Modifier.size(16.dp))
+                            Spacer(Modifier.width(5.dp))
+                            Text(strings.loadArchiveActionShort, style = MaterialTheme.typography.labelMedium)
+                        }
+
+                        if (uiState.listAccessStatus == ListAccessStatus.NETWORK_ERROR) {
+                            OutlinedButton(
+                                onClick = onRetryLookup,
+                                shape = RoundedCornerShape(10.dp),
+                                contentPadding = PaddingValues(vertical = 8.dp, horizontal = 10.dp)
+                            ) {
+                                Icon(Icons.Rounded.Refresh, null, modifier = Modifier.size(16.dp))
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
         // Karşılıklı Takip Dağılımı
         item {
             GlassCard(padding = 18.dp) {
@@ -239,7 +395,7 @@ fun DashboardScreen(
             }
         }
 
-        // Son Değişimler (Temiz Liste Kartı)
+        // Son Değişimler
         item {
             val diff = uiState.latestDiff
             GlassCard(padding = 0.dp) {
@@ -304,10 +460,25 @@ fun DashboardScreen(
                     countColor = AccentEmerald,
                     onClick = { onOpenTab(FilterTab.ALL_FOLLOWERS) }
                 )
+
+                if ((diff?.unfollowedByMe?.size ?: 0) > 0) {
+                    HorizontalDivider(
+                        modifier = Modifier.padding(start = 16.dp),
+                        thickness = 0.5.dp,
+                        color = palette.border
+                    )
+                    GroupedNavRow(
+                        title = strings.unfollowedByMeRowTitle,
+                        subtitle = diff!!.unfollowedByMe.take(2).joinToString(", ") { "@$it" },
+                        count = diff.unfollowedByMe.size,
+                        countColor = palette.textSecondary,
+                        onClick = { onOpenTab(FilterTab.ALL_FOLLOWING) }
+                    )
+                }
             }
         }
 
-        // Diğer Listeler (Tek Blokta Gruplanmış)
+        // Diğer Listeler
         item {
             GlassCard(padding = 0.dp) {
                 GroupedNavRow(

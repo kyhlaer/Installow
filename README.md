@@ -9,10 +9,11 @@
 ## ✨ Özellikler
 
 - 👥 **Kapsamlı Bağlantı Analizi:** Seni takip etmeyenler, senin takip etmediklerin (hayranlar), karşılıklı takipler, bekleyen istekler ve beyaz liste tek ekranda.
-- 📈 **Zaman İçindeki Değişimler:** Kaydedilen verileri karşılaştırarak **takipten çıkanları** ve **yeni takipçileri** otomatik listeler; son 6 aylık aktivite grafiği ve öne çıkan tarihleri sunar.
-- 🔍 **Arama, Sıralama & Notlar:** Kullanıcı adı, isim, özel etiket veya notlarda anlık arama; tarihe, takipçi sayısına ve alfabetik (A-Z / Z-A) sıraya göre filtreleme.
+- 🔀 **Çoklu Hesap & Anında Profil Sorgulama:** Üstteki `@kullanici` alanına dokunarak istediğiniz kadar Instagram hesabı ekleyin, tek dokunuşla hesaplar arası geçin; ZIP/JSON yüklemeden bile herkese açık takipçi/takip edilen sayılarını ve (Instagram izin verdiğinde) açık listeleri doğrudan çekin.
+- 📈 **Zaman İçindeki Değişimler:** Kaydedilen verileri karşılaştırarak **takipten çıkanları**, **yeni takipçileri** ve **senin bıraktıklarını** otomatik listeler; son 6 aylık aktivite grafiği ve öne çıkan tarihleri sunar.
+- 🔍 **Arama, Sıralama & Hızlı Filtreler:** Kullanıcı adı, isim, özel etiket veya notlarda anlık arama; **Tümü / Notlular / Yakın Arkadaşlar** hızlı filtre çipleri ve profil kartından tek dokunuşla `@kullanıcı_adı` kopyalama.
 - 🎯 **Sıralı İnceleme Kuyruğu:** Beyaz liste dışındaki hesapları sırayla gözden geçirin, tek dokunuşla Instagram profilini açın, beyaz listeye alın veya yerel olarak işaretleyin.
-- 🗂️ **Çift Veri Kaynağı:**
+- 🗂️ **Ayrılmış 5 Sekmeli Yapı (`Panel · Kişiler · Analiz · Veri · Ayarlar`):**
   - 📦 **Resmi Instagram Arşivi (Sıfır Risk):** Meta'dan indirilen ZIP / JSON / HTML dosyalarını tamamen cihaz içinde ve çevrimdışı analiz eder.
   - 🌐 **Canlı Web Senkronizasyonu (Yavaş Mod):** Uygulama içi tarayıcı üzerinden beklemeli, molalı ve 15 dk soğuma korumalı salt-okunur senkronizasyon yapar.
 - 🎨 **Tema, Dil & Akıcı Arayüz:** **Koyu / Açık / Sistem** teması, **Türkçe / English / Sistem** dil seçeneği, sekmeler arası yatay kaydırma, CSV rapor paylaşımı ve uygulama içi sürüm notları.
@@ -47,5 +48,5 @@
 
 Tüm değişikliklerin ayrıntıları için [CHANGELOG.md](CHANGELOG.md) dosyasına göz atabilirsiniz.
 
-- 🆕 **v1.33:** Tam **İngilizce / Türkçe / Sistem** dil seçeneği, yerel formata uyumlu sayı/tarih/grafik/CSV çıktıları ve uygulama içi Sürüm Notları penceresi.
+- 🆕 **v1.33:** Tam **İngilizce / Türkçe / Sistem** dil desteği, ayrı **Veri** & **Ayarlar** sekmeleri (5 sekmeli alt bar), **çoklu hesap ekleme/geçiş**, ZIP yüklemeden **kullanıcı adı ile anlık profil & sayı çekme**, hızlı **Notlular / Yakın Arkadaşlar** filtreleri, tek dokunuşla kullanıcı adı kopyalama ve iyileştirilmiş ikon/buton yerleşimi (`by kyhlaer` başlıklı Panel).
 - 🚀 **v1.32:** **Installow by kyhlaer** açılış ekranı, AES-256-GCM Keystore şifreleme, WebView & Zip/CSV güvenlik kalkanı, canlı güvenlik testi ve R8 APK küçültme.

@@ -31,8 +31,15 @@ enum class SortOption(val labelTr: String) {
     USERNAME_DESC("Kullanıcı Adı (Z → A)")
 }
 
+enum class ConnectionQuickFilter {
+    ALL,
+    WITH_NOTES,
+    CLOSE_FRIENDS
+}
+
 enum class DataSourceType(val labelTr: String) {
     DEMO("Demo Veri Seti"),
+    PUBLIC_LOOKUP("Herkese Açık Profil"),
     OFFICIAL_EXPORT("Instagram Resmi Arşiv"),
     WEB_SYNC("Canlı Web Senkronizasyonu")
 }
@@ -41,7 +48,16 @@ enum class AppScreen(val labelTr: String) {
     DASHBOARD("Panel"),
     CONNECTIONS("Kişiler"),
     ANALYTICS("Analiz"),
-    DATA_SYNC("Veri")
+    DATA("Veri"),
+    SETTINGS("Ayarlar")
+}
+
+enum class ListAccessStatus {
+    FULL_DATA,
+    PRIVATE_ACCOUNT,
+    LOGIN_REQUIRED_FOR_LISTS,
+    PROFILE_NOT_FOUND,
+    NETWORK_ERROR
 }
 
 enum class ThemePreference(val labelTr: String) {
@@ -181,10 +197,33 @@ data class Snapshot(
     val pendingRequests: Map<String, Long> = emptyMap(),
     val closeFriends: Set<String> = emptySet(),
     val displayNames: Map<String, String> = emptyMap(),
-    val followerCounts: Map<String, Long> = emptyMap()
+    val followerCounts: Map<String, Long> = emptyMap(),
+    val reportedFollowersCount: Int? = null,
+    val reportedFollowingCount: Int? = null,
+    val isPrivateAccount: Boolean? = null
 ) {
-    val followerCount: Int get() = followers.size
-    val followingCount: Int get() = following.size
+    val followerCount: Int get() = reportedFollowersCount ?: followers.size
+    val followingCount: Int get() = reportedFollowingCount ?: following.size
+}
+
+@Immutable
+data class AccountWorkspace(
+    val id: String,
+    val ownerUsername: String,
+    val displayName: String = "",
+    val dataSourceType: DataSourceType = DataSourceType.DEMO,
+    val snapshots: List<Snapshot> = emptyList(),
+    val annotations: Map<String, AccountAnnotation> = emptyMap(),
+    val reportedFollowersCount: Int? = null,
+    val reportedFollowingCount: Int? = null,
+    val isPrivateAccount: Boolean? = null,
+    val listAccessStatus: ListAccessStatus = ListAccessStatus.FULL_DATA
+) {
+    val latestSnapshot: Snapshot? get() = snapshots.lastOrNull()
+    val summaryFollowersCount: Int
+        get() = reportedFollowersCount ?: latestSnapshot?.followerCount ?: 0
+    val summaryFollowingCount: Int
+        get() = reportedFollowingCount ?: latestSnapshot?.followingCount ?: 0
 }
 
 @Immutable

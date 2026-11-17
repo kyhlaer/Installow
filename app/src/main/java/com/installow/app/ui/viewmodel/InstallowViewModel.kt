@@ -9,15 +9,19 @@ import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import com.installow.app.data.DemoDataGenerator
 import com.installow.app.data.InstagramExportParser
+import com.installow.app.data.InstagramPublicLookup
 import com.installow.app.data.LocalRepository
 import com.installow.app.data.PersistedAppState
 import com.installow.app.model.AccountAnnotation
+import com.installow.app.model.AccountWorkspace
 import com.installow.app.model.AppLanguage
 import com.installow.app.model.AppScreen
+import com.installow.app.model.ConnectionQuickFilter
 import com.installow.app.model.DataSourceType
 import com.installow.app.model.FilterTab
 import com.installow.app.model.InstaAccount
 import com.installow.app.model.LanguagePreference
+import com.installow.app.model.ListAccessStatus
 import com.installow.app.model.MonthlyStat
 import com.installow.app.model.ParsedExportData
 import com.installow.app.model.RelationCategory
@@ -46,6 +50,7 @@ import java.util.UUID
 data class InstallowUiState(
     val currentScreen: AppScreen = AppScreen.DASHBOARD,
     val selectedTab: FilterTab = FilterTab.NON_FOLLOWERS,
+    val selectedQuickFilter: ConnectionQuickFilter = ConnectionQuickFilter.ALL,
     val searchQuery: String = "",
     val sortOption: SortOption = SortOption.NEWEST_FIRST,
     val hideWhitelistedInNonFollowers: Boolean = true,
@@ -53,6 +58,13 @@ data class InstallowUiState(
     val languagePreference: LanguagePreference = LanguagePreference.SYSTEM,
     val dataSourceType: DataSourceType = DataSourceType.DEMO,
     val activeOwnerUsername: String = "benim.hesabim",
+    val activeOwnerDisplayName: String = "",
+    val workspaces: List<AccountWorkspace> = emptyList(),
+    val activeWorkspaceId: String = "",
+    val isPrivateAccount: Boolean? = null,
+    val listAccessStatus: ListAccessStatus = ListAccessStatus.FULL_DATA,
+    val isLookingUpAccount: Boolean = false,
+    val showAccountSwitcherSheet: Boolean = false,
     val allAccounts: List<InstaAccount> = emptyList(),
     val filteredAccounts: List<InstaAccount> = emptyList(),
     val tabCounts: Map<FilterTab, Int> = emptyMap(),
@@ -90,6 +102,8 @@ class InstallowViewModel(application: Application) : AndroidViewModel(applicatio
 
     private val repository = LocalRepository(application.applicationContext)
 
+    private var workspaces: MutableList<AccountWorkspace> = mutableListOf()
+    private var activeWorkspaceId: String = ""
     private var snapshots: List<Snapshot> = emptyList()
     private var annotations: MutableMap<String, AccountAnnotation> = linkedMapOf()
 
@@ -103,20 +117,60 @@ class InstallowViewModel(application: Application) : AndroidViewModel(applicatio
     private fun currentStrings(pref: LanguagePreference = _uiState.value.languagePreference): AppStrings =
         stringsFor(resolveAppLanguage(pref))
 
+    private fun activeWorkspace(): AccountWorkspace? =
+        workspaces.firstOrNull { it.id == activeWorkspaceId } ?: workspaces.firstOrNull()
+
+    private fun syncActiveWorkspaceInList(
+        ownerUsername: String = activeWorkspace()?.ownerUsername ?: _uiState.value.activeOwnerUsername,
+        displayName: String = activeWorkspace()?.displayName ?: _uiState.value.activeOwnerDisplayName,
+        sourceType: DataSourceType = activeWorkspace()?.dataSourceType ?: _uiState.value.dataSourceType,
+        reportedFollowers: Int? = activeWorkspace()?.reportedFollowersCount,
+        reportedFollowing: Int? = activeWorkspace()?.reportedFollowingCount,
+        isPrivate: Boolean? = activeWorkspace()?.isPrivateAccount,
+        listStatus: ListAccessStatus = activeWorkspace()?.listAccessStatus ?: _uiState.value.listAccessStatus
+    ) {
+        val updated = AccountWorkspace(
+            id = activeWorkspaceId,
+            ownerUsername = ownerUsername,
+            displayName = displayName,
+            dataSourceType = sourceType,
+            snapshots = snapshots.toList(),
+            annotations = LinkedHashMap(annotations),
+            reportedFollowersCount = reportedFollowers,
+            reportedFollowingCount = reportedFollowing,
+            isPrivateAccount = isPrivate,
+            listAccessStatus = listStatus
+        )
+        val idx = workspaces.indexOfFirst { it.id == activeWorkspaceId }
+        if (idx >= 0) {
+            workspaces[idx] = updated
+        } else {
+            workspaces.add(0, updated)
+        }
+    }
+
     private fun loadInitialData() {
         viewModelScope.launch {
             val loaded = withContext(Dispatchers.IO) {
                 repository.loadState()
             }
-            if (loaded != null) {
-                snapshots = loaded.snapshots
-                annotations = loaded.annotations.toMutableMap()
+            if (loaded != null && loaded.workspaces.isNotEmpty()) {
+                workspaces = loaded.workspaces.toMutableList()
+                activeWorkspaceId = loaded.activeWorkspaceId
+                val active = activeWorkspace()!!
+                snapshots = active.snapshots
+                annotations = active.annotations.toMutableMap()
                 rebuildState(
-                    sourceType = loaded.dataSourceType,
+                    sourceType = active.dataSourceType,
                     themePreference = loaded.themePreference,
                     languagePreference = loaded.languagePreference,
                     hideWhitelisted = loaded.hideWhitelistedInNonFollowers,
-                    ownerUsername = loaded.activeOwnerUsername
+                    ownerUsername = active.ownerUsername,
+                    ownerDisplayName = active.displayName,
+                    isPrivateAccount = active.isPrivateAccount,
+                    listAccessStatus = active.listAccessStatus,
+                    reportedFollowers = active.reportedFollowersCount,
+                    reportedFollowing = active.reportedFollowingCount
                 )
             } else {
                 resetToDemoData(silent = true)
@@ -138,6 +192,11 @@ class InstallowViewModel(application: Application) : AndroidViewModel(applicatio
 
     fun selectTab(tab: FilterTab) {
         _uiState.value = _uiState.value.copy(selectedTab = tab)
+        recomputeFilteredList()
+    }
+
+    fun selectQuickFilter(filter: ConnectionQuickFilter) {
+        _uiState.value = _uiState.value.copy(selectedQuickFilter = filter)
         recomputeFilteredList()
     }
 
@@ -179,12 +238,273 @@ class InstallowViewModel(application: Application) : AndroidViewModel(applicatio
         _uiState.value = _uiState.value.copy(showWebSyncDialog = show)
     }
 
+    fun setShowAccountSwitcherSheet(show: Boolean) {
+        _uiState.value = _uiState.value.copy(showAccountSwitcherSheet = show)
+    }
+
     fun openAccountSheet(account: InstaAccount?) {
         _uiState.value = _uiState.value.copy(selectedAccountForSheet = account)
     }
 
     fun dismissStatusMessage() {
         _uiState.value = _uiState.value.copy(statusMessage = null)
+    }
+
+    fun showTransientMessage(message: String) {
+        _uiState.value = _uiState.value.copy(statusMessage = message)
+    }
+
+    fun switchWorkspace(workspaceId: String) {
+        if (workspaceId == activeWorkspaceId) {
+            _uiState.value = _uiState.value.copy(showAccountSwitcherSheet = false)
+            return
+        }
+        syncActiveWorkspaceInList()
+        val target = workspaces.firstOrNull { it.id == workspaceId } ?: return
+        activeWorkspaceId = target.id
+        snapshots = target.snapshots
+        annotations = target.annotations.toMutableMap()
+        val strings = currentStrings()
+        _uiState.value = _uiState.value.copy(
+            showAccountSwitcherSheet = false,
+            isQueueActive = false,
+            queueUsernames = emptyList(),
+            queueIndex = 0,
+            currentQueueAccount = null,
+            selectedAccountForSheet = null,
+            statusMessage = String.format(Locale.ROOT, strings.accountSwitchedMsgFormat, target.ownerUsername)
+        )
+        rebuildState(
+            sourceType = target.dataSourceType,
+            ownerUsername = target.ownerUsername,
+            ownerDisplayName = target.displayName,
+            isPrivateAccount = target.isPrivateAccount,
+            listAccessStatus = target.listAccessStatus,
+            reportedFollowers = target.reportedFollowersCount,
+            reportedFollowing = target.reportedFollowingCount
+        )
+        persistCurrentState()
+    }
+
+    fun removeWorkspace(workspaceId: String) {
+        val strings = currentStrings()
+        if (workspaces.size <= 1) {
+            _uiState.value = _uiState.value.copy(statusMessage = strings.cannotRemoveLastAccountMsg)
+            return
+        }
+        val target = workspaces.firstOrNull { it.id == workspaceId } ?: return
+        workspaces.removeAll { it.id == workspaceId }
+        if (activeWorkspaceId == workspaceId) {
+            val fallback = workspaces.first()
+            activeWorkspaceId = fallback.id
+            snapshots = fallback.snapshots
+            annotations = fallback.annotations.toMutableMap()
+            rebuildState(
+                sourceType = fallback.dataSourceType,
+                ownerUsername = fallback.ownerUsername,
+                ownerDisplayName = fallback.displayName,
+                isPrivateAccount = fallback.isPrivateAccount,
+                listAccessStatus = fallback.listAccessStatus,
+                reportedFollowers = fallback.reportedFollowersCount,
+                reportedFollowing = fallback.reportedFollowingCount
+            )
+        } else {
+            _uiState.value = _uiState.value.copy(workspaces = workspaces.toList())
+        }
+        _uiState.value = _uiState.value.copy(
+            statusMessage = String.format(Locale.ROOT, strings.accountRemovedMsgFormat, target.ownerUsername)
+        )
+        persistCurrentState()
+    }
+
+    fun lookupAndAddAccount(rawUsername: String) {
+        val strings = currentStrings()
+        val clean = InstagramExportParser.normalizeUsername(rawUsername)
+        if (clean == null) {
+            _uiState.value = _uiState.value.copy(statusMessage = strings.invalidUsernameMsg)
+            return
+        }
+
+        _uiState.value = _uiState.value.copy(isLookingUpAccount = true)
+        viewModelScope.launch {
+            val lookup = withContext(Dispatchers.IO) {
+                InstagramPublicLookup.lookupProfile(clean)
+            }
+
+            val latestStrings = currentStrings()
+            when (lookup.listAccessStatus) {
+                ListAccessStatus.PROFILE_NOT_FOUND -> {
+                    _uiState.value = _uiState.value.copy(
+                        isLookingUpAccount = false,
+                        statusMessage = String.format(Locale.ROOT, latestStrings.publicLookupNotFoundMsgFormat, clean)
+                    )
+                    return@launch
+                }
+
+                ListAccessStatus.NETWORK_ERROR -> {
+                    val existing = workspaces.firstOrNull { it.id == clean }
+                    if (existing != null) {
+                        _uiState.value = _uiState.value.copy(isLookingUpAccount = false)
+                        switchWorkspace(existing.id)
+                        _uiState.value = _uiState.value.copy(statusMessage = latestStrings.publicLookupErrorMsg)
+                    } else {
+                        val fallbackSnapshot = Snapshot(
+                            id = UUID.randomUUID().toString(),
+                            createdAtMillis = System.currentTimeMillis(),
+                            sourceLabel = "${latestStrings.sourcePublicLookup} (@$clean)",
+                            followers = emptyMap(),
+                            following = emptyMap()
+                        )
+                        activateOrCreateWorkspaceFromLookup(
+                            username = clean,
+                            displayName = "",
+                            sourceType = DataSourceType.PUBLIC_LOOKUP,
+                            snapshot = fallbackSnapshot,
+                            reportedFollowers = null,
+                            reportedFollowing = null,
+                            isPrivate = null,
+                            listStatus = ListAccessStatus.NETWORK_ERROR
+                        )
+                        _uiState.value = _uiState.value.copy(
+                            isLookingUpAccount = false,
+                            showAccountSwitcherSheet = false,
+                            statusMessage = latestStrings.publicLookupErrorMsg
+                        )
+                    }
+                    return@launch
+                }
+
+                else -> {
+                    val now = System.currentTimeMillis()
+                    val nowSec = now / 1000L
+                    val followersMap = linkedMapOf<String, Long>()
+                    val followingMap = linkedMapOf<String, Long>()
+                    val displayNames = linkedMapOf<String, String>()
+
+                    lookup.followers.forEach { (handle, pair) ->
+                        if (pair.first.isNotBlank()) displayNames[handle] = pair.first
+                        followersMap[handle] = if (pair.second > 0L) pair.second else nowSec
+                    }
+                    lookup.following.forEach { (handle, pair) ->
+                        if (pair.first.isNotBlank()) displayNames[handle] = pair.first
+                        followingMap[handle] = if (pair.second > 0L) pair.second else nowSec
+                    }
+
+                    val existingWs = workspaces.firstOrNull { it.id == clean }
+                    val existingLatest = existingWs?.snapshots?.lastOrNull()
+                    val effectiveFollowers = if (followersMap.isNotEmpty()) followersMap else existingLatest?.followers.orEmpty()
+                    val effectiveFollowing = if (followingMap.isNotEmpty()) followingMap else existingLatest?.following.orEmpty()
+                    val effectiveNames = if (displayNames.isNotEmpty()) displayNames else existingLatest?.displayNames.orEmpty()
+
+                    val sourceType = when {
+                        followersMap.isNotEmpty() || followingMap.isNotEmpty() -> DataSourceType.PUBLIC_LOOKUP
+                        existingWs != null && existingWs.dataSourceType != DataSourceType.DEMO -> existingWs.dataSourceType
+                        else -> DataSourceType.PUBLIC_LOOKUP
+                    }
+
+                    val newSnapshot = Snapshot(
+                        id = UUID.randomUUID().toString(),
+                        createdAtMillis = now,
+                        sourceLabel = "${latestStrings.sourcePublicLookup} (@$clean)",
+                        followers = effectiveFollowers,
+                        following = effectiveFollowing,
+                        pendingRequests = existingLatest?.pendingRequests.orEmpty(),
+                        closeFriends = existingLatest?.closeFriends.orEmpty(),
+                        displayNames = effectiveNames,
+                        reportedFollowersCount = lookup.followersCount,
+                        reportedFollowingCount = lookup.followingCount,
+                        isPrivateAccount = lookup.isPrivate
+                    )
+
+                    val resolvedListStatus = when {
+                        effectiveFollowers.isNotEmpty() || effectiveFollowing.isNotEmpty() -> ListAccessStatus.FULL_DATA
+                        else -> lookup.listAccessStatus
+                    }
+
+                    activateOrCreateWorkspaceFromLookup(
+                        username = clean,
+                        displayName = lookup.displayName,
+                        sourceType = sourceType,
+                        snapshot = newSnapshot,
+                        reportedFollowers = lookup.followersCount,
+                        reportedFollowing = lookup.followingCount,
+                        isPrivate = lookup.isPrivate,
+                        listStatus = resolvedListStatus
+                    )
+
+                    val fCount = lookup.followersCount ?: effectiveFollowers.size
+                    val gCount = lookup.followingCount ?: effectiveFollowing.size
+                    val msg = when (resolvedListStatus) {
+                        ListAccessStatus.FULL_DATA ->
+                            String.format(Locale.ROOT, latestStrings.publicLookupFullSuccessFormat, clean, fCount, gCount)
+                        ListAccessStatus.PRIVATE_ACCOUNT ->
+                            String.format(Locale.ROOT, latestStrings.publicLookupPrivateMsgFormat, clean, fCount, gCount)
+                        else ->
+                            String.format(Locale.ROOT, latestStrings.publicLookupCountsOnlyMsgFormat, clean, fCount, gCount)
+                    }
+
+                    _uiState.value = _uiState.value.copy(
+                        isLookingUpAccount = false,
+                        showAccountSwitcherSheet = false,
+                        statusMessage = msg
+                    )
+                }
+            }
+        }
+    }
+
+    private fun activateOrCreateWorkspaceFromLookup(
+        username: String,
+        displayName: String,
+        sourceType: DataSourceType,
+        snapshot: Snapshot,
+        reportedFollowers: Int?,
+        reportedFollowing: Int?,
+        isPrivate: Boolean?,
+        listStatus: ListAccessStatus
+    ) {
+        syncActiveWorkspaceInList()
+        val existingIdx = workspaces.indexOfFirst { it.id == username }
+        val prevSnapshots = if (existingIdx >= 0) {
+            workspaces[existingIdx].snapshots.filter { it.id != "demo-prev" && it.id != "demo-current" }
+        } else {
+            emptyList()
+        }
+        val prevAnnotations = if (existingIdx >= 0) workspaces[existingIdx].annotations else emptyMap()
+        val updatedSnapshots = (prevSnapshots + snapshot).takeLast(15)
+
+        val ws = AccountWorkspace(
+            id = username,
+            ownerUsername = username,
+            displayName = displayName,
+            dataSourceType = sourceType,
+            snapshots = updatedSnapshots,
+            annotations = prevAnnotations,
+            reportedFollowersCount = reportedFollowers,
+            reportedFollowingCount = reportedFollowing,
+            isPrivateAccount = isPrivate,
+            listAccessStatus = listStatus
+        )
+        if (existingIdx >= 0) {
+            workspaces[existingIdx] = ws
+        } else {
+            workspaces.add(0, ws)
+        }
+
+        activeWorkspaceId = ws.id
+        snapshots = ws.snapshots
+        annotations = ws.annotations.toMutableMap()
+
+        rebuildState(
+            sourceType = ws.dataSourceType,
+            ownerUsername = ws.ownerUsername,
+            ownerDisplayName = ws.displayName,
+            isPrivateAccount = ws.isPrivateAccount,
+            listAccessStatus = ws.listAccessStatus,
+            reportedFollowers = ws.reportedFollowersCount,
+            reportedFollowing = ws.reportedFollowingCount
+        )
+        persistCurrentState()
     }
 
     fun runSecurityAudit() {
@@ -215,6 +535,7 @@ class InstallowViewModel(application: Application) : AndroidViewModel(applicatio
         val current = annotations[username] ?: AccountAnnotation()
         val updated = current.copy(isWhitelisted = !current.isWhitelisted)
         annotations[username] = updated
+        syncActiveWorkspaceInList()
         rebuildState()
         refreshSheetAccountIfOpen(username)
         persistCurrentState()
@@ -233,6 +554,7 @@ class InstallowViewModel(application: Application) : AndroidViewModel(applicatio
             customTag = tag.trim().take(40),
             customNote = note.trim().take(300)
         )
+        syncActiveWorkspaceInList()
         rebuildState()
         refreshSheetAccountIfOpen(username)
         persistCurrentState()
@@ -249,6 +571,7 @@ class InstallowViewModel(application: Application) : AndroidViewModel(applicatio
         val updatedFollowing = LinkedHashMap(latest.following).apply { remove(username) }
         val updatedLatest = latest.copy(following = updatedFollowing)
         snapshots = snapshots.dropLast(1) + updatedLatest
+        syncActiveWorkspaceInList()
 
         val wasSheetOpen = _uiState.value.selectedAccountForSheet?.username == username
         rebuildState()
@@ -368,9 +691,27 @@ class InstallowViewModel(application: Application) : AndroidViewModel(applicatio
         val bundle = DemoDataGenerator.createInitialBundle()
         snapshots = bundle.snapshots
         annotations = bundle.annotations.toMutableMap()
+        val demoWs = AccountWorkspace(
+            id = "benim.hesabim",
+            ownerUsername = "benim.hesabim",
+            displayName = "Demo Hesap",
+            dataSourceType = DataSourceType.DEMO,
+            snapshots = snapshots,
+            annotations = annotations,
+            listAccessStatus = ListAccessStatus.FULL_DATA
+        )
+        activeWorkspaceId = demoWs.id
+        val idx = workspaces.indexOfFirst { it.id == demoWs.id }
+        if (idx >= 0) workspaces[idx] = demoWs else workspaces.add(demoWs)
+
         rebuildState(
             sourceType = DataSourceType.DEMO,
-            ownerUsername = "benim.hesabim"
+            ownerUsername = "benim.hesabim",
+            ownerDisplayName = demoWs.displayName,
+            isPrivateAccount = null,
+            listAccessStatus = ListAccessStatus.FULL_DATA,
+            reportedFollowers = null,
+            reportedFollowing = null
         )
         persistCurrentState()
         if (!silent) {
@@ -385,6 +726,7 @@ class InstallowViewModel(application: Application) : AndroidViewModel(applicatio
         val latest = snapshots.lastOrNull() ?: return
         val simulated = DemoDataGenerator.simulateNextSnapshot(latest)
         snapshots = (snapshots + simulated).takeLast(15)
+        syncActiveWorkspaceInList()
         rebuildState()
         persistCurrentState()
         val strings = currentStrings()
@@ -428,9 +770,12 @@ class InstallowViewModel(application: Application) : AndroidViewModel(applicatio
                     }
 
                     val existingLatest = snapshots.lastOrNull()
+                    val activeWs = activeWorkspace()
+                    val isCurrentlyDemo = activeWs?.dataSourceType == DataSourceType.DEMO
+
                     val newFollowersMap = if (parsed.followers.isNotEmpty()) {
                         parsed.followers.mapValues { it.value.timestampSec }
-                    } else if (_uiState.value.dataSourceType == DataSourceType.OFFICIAL_EXPORT && existingLatest != null) {
+                    } else if (!isCurrentlyDemo && existingLatest != null) {
                         existingLatest.followers
                     } else {
                         emptyMap()
@@ -438,7 +783,7 @@ class InstallowViewModel(application: Application) : AndroidViewModel(applicatio
 
                     val newFollowingMap = if (parsed.following.isNotEmpty()) {
                         parsed.following.mapValues { it.value.timestampSec }
-                    } else if (_uiState.value.dataSourceType == DataSourceType.OFFICIAL_EXPORT && existingLatest != null) {
+                    } else if (!isCurrentlyDemo && existingLatest != null) {
                         existingLatest.following
                     } else {
                         emptyMap()
@@ -461,15 +806,31 @@ class InstallowViewModel(application: Application) : AndroidViewModel(applicatio
                     )
 
                     val previousReal = snapshots.filter { it.id != "demo-prev" && it.id != "demo-current" }
-                    snapshots = if (_uiState.value.dataSourceType == DataSourceType.DEMO) {
+                    snapshots = if (isCurrentlyDemo) {
                         listOf(snapshot)
                     } else {
                         (previousReal + snapshot).takeLast(15)
                     }
 
+                    val targetOwner = if (activeWs != null && activeWs.ownerUsername != "benim.hesabim") {
+                        activeWs.ownerUsername
+                    } else {
+                        strings.archiveOwnerFallback
+                    }
+                    syncActiveWorkspaceInList(
+                        ownerUsername = targetOwner,
+                        sourceType = DataSourceType.OFFICIAL_EXPORT,
+                        reportedFollowers = null,
+                        reportedFollowing = null,
+                        listStatus = ListAccessStatus.FULL_DATA
+                    )
+
                     rebuildState(
                         sourceType = DataSourceType.OFFICIAL_EXPORT,
-                        ownerUsername = strings.archiveOwnerFallback
+                        ownerUsername = targetOwner,
+                        listAccessStatus = ListAccessStatus.FULL_DATA,
+                        reportedFollowers = null,
+                        reportedFollowing = null
                     )
                     persistCurrentState()
                     _uiState.value = _uiState.value.copy(
@@ -511,7 +872,9 @@ class InstallowViewModel(application: Application) : AndroidViewModel(applicatio
         }
 
         val strings = currentStrings()
-        val cleanOwner = ownerUsername.trim().removePrefix("@").ifBlank { "instagram_account" }
+        val cleanOwner = InstagramExportParser.normalizeUsername(ownerUsername)
+            ?: ownerUsername.trim().removePrefix("@").ifBlank { "instagram_account" }
+
         val snapshot = Snapshot(
             id = UUID.randomUUID().toString(),
             createdAtMillis = now,
@@ -521,18 +884,16 @@ class InstallowViewModel(application: Application) : AndroidViewModel(applicatio
             displayNames = displayNames
         )
 
-        val previousReal = snapshots.filter { it.id != "demo-prev" && it.id != "demo-current" }
-        snapshots = if (_uiState.value.dataSourceType == DataSourceType.DEMO) {
-            listOf(snapshot)
-        } else {
-            (previousReal + snapshot).takeLast(15)
-        }
-
-        rebuildState(
+        activateOrCreateWorkspaceFromLookup(
+            username = cleanOwner,
+            displayName = activeWorkspace()?.takeIf { it.id == cleanOwner }?.displayName.orEmpty(),
             sourceType = DataSourceType.WEB_SYNC,
-            ownerUsername = cleanOwner
+            snapshot = snapshot,
+            reportedFollowers = null,
+            reportedFollowing = null,
+            isPrivate = null,
+            listStatus = ListAccessStatus.FULL_DATA
         )
-        persistCurrentState()
         _uiState.value = _uiState.value.copy(
             showWebSyncDialog = false,
             currentScreen = AppScreen.DASHBOARD,
@@ -572,7 +933,12 @@ class InstallowViewModel(application: Application) : AndroidViewModel(applicatio
         themePreference: ThemePreference = _uiState.value.themePreference,
         languagePreference: LanguagePreference = _uiState.value.languagePreference,
         hideWhitelisted: Boolean = _uiState.value.hideWhitelistedInNonFollowers,
-        ownerUsername: String = _uiState.value.activeOwnerUsername
+        ownerUsername: String = _uiState.value.activeOwnerUsername,
+        ownerDisplayName: String = _uiState.value.activeOwnerDisplayName,
+        isPrivateAccount: Boolean? = _uiState.value.isPrivateAccount,
+        listAccessStatus: ListAccessStatus = _uiState.value.listAccessStatus,
+        reportedFollowers: Int? = activeWorkspace()?.reportedFollowersCount,
+        reportedFollowing: Int? = activeWorkspace()?.reportedFollowingCount
     ) {
         val latest = snapshots.lastOrNull() ?: return
         val previous = if (snapshots.size >= 2) snapshots[snapshots.size - 2] else null
@@ -638,8 +1004,8 @@ class InstallowViewModel(application: Application) : AndroidViewModel(applicatio
 
         val newFollowerAccounts = diff?.newFollowers?.mapNotNull { accountMap[it] }.orEmpty()
 
-        var followersCount = 0
-        var followingCount = 0
+        var listFollowersCount = 0
+        var listFollowingCount = 0
         var mutualCount = 0
         var nonFollowersTotal = 0
         var nonFollowersActionable = 0
@@ -652,13 +1018,13 @@ class InstallowViewModel(application: Application) : AndroidViewModel(applicatio
 
         for (acc in accounts) {
             if (acc.isFollower) {
-                followersCount++
+                listFollowersCount++
                 val ts = acc.followedMeAt ?: 0L
                 if (ts > 0L && (earliestFollower == null || ts < (earliestFollower.followedMeAt ?: Long.MAX_VALUE))) {
                     earliestFollower = acc
                 }
             }
-            if (acc.isFollowing) followingCount++
+            if (acc.isFollowing) listFollowingCount++
             if (acc.isWhitelisted) whitelistCount++
 
             when (acc.category) {
@@ -684,16 +1050,31 @@ class InstallowViewModel(application: Application) : AndroidViewModel(applicatio
             }
         }
 
-        val followBackRatio = if (followingCount > 0) followersCount.toFloat() / followingCount.toFloat() else 0f
-        val reciprocityPercent = if (followingCount > 0) (mutualCount * 100) / followingCount else 0
-        val fanReturnPercent = if (followersCount > 0) (mutualCount * 100) / followersCount else 0
+        val effectiveFollowersCount = if (listFollowersCount == 0 && (reportedFollowers ?: latest.reportedFollowersCount) != null) {
+            reportedFollowers ?: latest.reportedFollowersCount ?: 0
+        } else {
+            listFollowersCount
+        }
+        val effectiveFollowingCount = if (listFollowingCount == 0 && (reportedFollowing ?: latest.reportedFollowingCount) != null) {
+            reportedFollowing ?: latest.reportedFollowingCount ?: 0
+        } else {
+            listFollowingCount
+        }
+
+        val followBackRatio = if (effectiveFollowingCount > 0) {
+            effectiveFollowersCount.toFloat() / effectiveFollowingCount.toFloat()
+        } else {
+            0f
+        }
+        val reciprocityPercent = if (listFollowingCount > 0) (mutualCount * 100) / listFollowingCount else 0
+        val fanReturnPercent = if (listFollowersCount > 0) (mutualCount * 100) / listFollowersCount else 0
 
         val tabCounts = mapOf(
             FilterTab.NON_FOLLOWERS to if (hideWhitelisted) nonFollowersActionable else nonFollowersTotal,
             FilterTab.FANS to fansCount,
             FilterTab.MUTUALS to mutualCount,
-            FilterTab.ALL_FOLLOWERS to followersCount,
-            FilterTab.ALL_FOLLOWING to followingCount,
+            FilterTab.ALL_FOLLOWERS to listFollowersCount,
+            FilterTab.ALL_FOLLOWING to listFollowingCount,
             FilterTab.UNFOLLOWERS_DIFF to lostFollowerAccounts.size,
             FilterTab.PENDING to pendingCount,
             FilterTab.WHITELIST to whitelistCount
@@ -708,14 +1089,19 @@ class InstallowViewModel(application: Application) : AndroidViewModel(applicatio
             languagePreference = languagePreference,
             hideWhitelistedInNonFollowers = hideWhitelisted,
             activeOwnerUsername = ownerUsername,
+            activeOwnerDisplayName = ownerDisplayName,
+            workspaces = workspaces.toList(),
+            activeWorkspaceId = activeWorkspaceId,
+            isPrivateAccount = isPrivateAccount,
+            listAccessStatus = listAccessStatus,
             allAccounts = accounts,
             tabCounts = tabCounts,
             snapshots = snapshots,
             latestDiff = diff,
             lostFollowerAccounts = lostFollowerAccounts,
             newFollowerAccounts = newFollowerAccounts,
-            followersCount = followersCount,
-            followingCount = followingCount,
+            followersCount = effectiveFollowersCount,
+            followingCount = effectiveFollowingCount,
             mutualCount = mutualCount,
             nonFollowersTotalCount = nonFollowersTotal,
             nonFollowersActionableCount = nonFollowersActionable,
@@ -741,7 +1127,7 @@ class InstallowViewModel(application: Application) : AndroidViewModel(applicatio
 
     private fun recomputeFilteredList() {
         val state = _uiState.value
-        val baseList = when (state.selectedTab) {
+        val tabFiltered = when (state.selectedTab) {
             FilterTab.NON_FOLLOWERS -> state.allAccounts.filter {
                 it.category == RelationCategory.NON_FOLLOWER &&
                     (!state.hideWhitelistedInNonFollowers || !it.isWhitelisted)
@@ -755,11 +1141,19 @@ class InstallowViewModel(application: Application) : AndroidViewModel(applicatio
             FilterTab.WHITELIST -> state.allAccounts.filter { it.isWhitelisted }
         }
 
+        val quickFiltered = when (state.selectedQuickFilter) {
+            ConnectionQuickFilter.ALL -> tabFiltered
+            ConnectionQuickFilter.WITH_NOTES -> tabFiltered.filter {
+                it.customTag.isNotBlank() || it.customNote.isNotBlank()
+            }
+            ConnectionQuickFilter.CLOSE_FRIENDS -> tabFiltered.filter { it.isCloseFriend }
+        }
+
         val q = state.searchQuery.trim().lowercase(Locale.ROOT)
         val searched = if (q.isEmpty()) {
-            baseList
+            quickFiltered
         } else {
-            baseList.filter { acc -> acc.searchBlob.contains(q) }
+            quickFiltered.filter { acc -> acc.searchBlob.contains(q) }
         }
 
         val sorted = when (state.sortOption) {
@@ -865,15 +1259,14 @@ class InstallowViewModel(application: Application) : AndroidViewModel(applicatio
     }
 
     private fun persistCurrentState() {
+        syncActiveWorkspaceInList()
         val state = _uiState.value
         val persisted = PersistedAppState(
-            snapshots = snapshots.toList(),
-            annotations = LinkedHashMap(annotations),
-            dataSourceType = state.dataSourceType,
+            workspaces = workspaces.toList(),
+            activeWorkspaceId = activeWorkspaceId,
             themePreference = state.themePreference,
             languagePreference = state.languagePreference,
-            hideWhitelistedInNonFollowers = state.hideWhitelistedInNonFollowers,
-            activeOwnerUsername = state.activeOwnerUsername
+            hideWhitelistedInNonFollowers = state.hideWhitelistedInNonFollowers
         )
         viewModelScope.launch(Dispatchers.IO) {
             repository.saveState(persisted)

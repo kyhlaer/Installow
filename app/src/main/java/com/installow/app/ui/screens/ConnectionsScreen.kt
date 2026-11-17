@@ -1,5 +1,6 @@
 package com.installow.app.ui.screens
 
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -31,6 +32,7 @@ import androidx.compose.material.icons.automirrored.rounded.OpenInNew
 import androidx.compose.material.icons.automirrored.rounded.PlaylistPlay
 import androidx.compose.material.icons.automirrored.rounded.Sort
 import androidx.compose.material.icons.rounded.Close
+import androidx.compose.material.icons.rounded.ContentCopy
 import androidx.compose.material.icons.rounded.Info
 import androidx.compose.material.icons.rounded.PersonRemove
 import androidx.compose.material.icons.rounded.Search
@@ -51,6 +53,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Switch
 import androidx.compose.material3.SwitchDefaults
 import androidx.compose.material3.Text
@@ -66,10 +69,13 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.SolidColor
+import androidx.compose.ui.platform.LocalClipboardManager
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import com.installow.app.model.ConnectionQuickFilter
 import com.installow.app.model.FilterTab
 import com.installow.app.model.InstaAccount
 import com.installow.app.model.RelationCategory
@@ -98,6 +104,7 @@ import java.util.Locale
 fun ConnectionsScreen(
     uiState: InstallowUiState,
     onSelectTab: (FilterTab) -> Unit,
+    onSelectQuickFilter: (ConnectionQuickFilter) -> Unit,
     onSearchChange: (String) -> Unit,
     onSortChange: (SortOption) -> Unit,
     onToggleHideWhitelisted: () -> Unit,
@@ -109,7 +116,8 @@ fun ConnectionsScreen(
     onNextQueue: () -> Unit,
     onPrevQueue: () -> Unit,
     onStopQueue: () -> Unit,
-    onBuildExportText: () -> String
+    onBuildExportText: () -> String,
+    onShowMessage: (String) -> Unit
 ) {
     val palette = LocalInstallowPalette.current
     val strings = LocalAppStrings.current
@@ -146,22 +154,23 @@ fun ConnectionsScreen(
                     )
                 }
 
-                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
                     Box {
-                        IconButton(
+                        Surface(
                             onClick = { sortMenuExpanded = true },
-                            modifier = Modifier
-                                .size(36.dp)
-                                .clip(CircleShape)
-                                .background(palette.surface)
-                                .border(0.75.dp, palette.border, CircleShape)
+                            shape = CircleShape,
+                            color = palette.surface,
+                            border = BorderStroke(0.75.dp, palette.border),
+                            modifier = Modifier.size(40.dp)
                         ) {
-                            Icon(
-                                imageVector = Icons.AutoMirrored.Rounded.Sort,
-                                contentDescription = strings.sortContentDesc,
-                                tint = palette.textPrimary,
-                                modifier = Modifier.size(18.dp)
-                            )
+                            Box(contentAlignment = Alignment.Center) {
+                                Icon(
+                                    imageVector = Icons.AutoMirrored.Rounded.Sort,
+                                    contentDescription = strings.sortContentDesc,
+                                    tint = palette.textPrimary,
+                                    modifier = Modifier.size(18.dp)
+                                )
+                            }
                         }
                         DropdownMenu(
                             expanded = sortMenuExpanded,
@@ -185,7 +194,7 @@ fun ConnectionsScreen(
                         }
                     }
 
-                    IconButton(
+                    Surface(
                         onClick = {
                             shareTextReport(
                                 context = context,
@@ -194,18 +203,19 @@ fun ConnectionsScreen(
                                 chooserTitle = strings.shareChooserTitle
                             )
                         },
-                        modifier = Modifier
-                            .size(36.dp)
-                            .clip(CircleShape)
-                            .background(palette.surface)
-                            .border(0.75.dp, palette.border, CircleShape)
+                        shape = CircleShape,
+                        color = palette.surface,
+                        border = BorderStroke(0.75.dp, palette.border),
+                        modifier = Modifier.size(40.dp)
                     ) {
-                        Icon(
-                            imageVector = Icons.Rounded.Share,
-                            contentDescription = strings.shareContentDesc,
-                            tint = palette.textPrimary,
-                            modifier = Modifier.size(17.dp)
-                        )
+                        Box(contentAlignment = Alignment.Center) {
+                            Icon(
+                                imageVector = Icons.Rounded.Share,
+                                contentDescription = strings.shareContentDesc,
+                                tint = palette.textPrimary,
+                                modifier = Modifier.size(18.dp)
+                            )
+                        }
                     }
                 }
             }
@@ -290,6 +300,45 @@ fun ConnectionsScreen(
                         style = MaterialTheme.typography.labelMedium,
                         color = if (selected) palette.accentContrastFg else palette.textSecondary,
                         fontWeight = if (selected) FontWeight.SemiBold else FontWeight.Medium
+                    )
+                }
+            }
+        }
+
+        Spacer(modifier = Modifier.height(8.dp))
+
+        // Hızlı Not & Yakın Arkadaş Filtreleri
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .horizontalScroll(rememberScrollState())
+                .padding(horizontal = 18.dp),
+            horizontalArrangement = Arrangement.spacedBy(8.dp)
+        ) {
+            ConnectionQuickFilter.entries.forEach { filter ->
+                val selected = filter == uiState.selectedQuickFilter
+                val label = when (filter) {
+                    ConnectionQuickFilter.ALL -> strings.allTagsFilterChip
+                    ConnectionQuickFilter.WITH_NOTES -> strings.onlyNotesFilterChip
+                    ConnectionQuickFilter.CLOSE_FRIENDS -> strings.onlyCloseFriendsChip
+                }
+                Box(
+                    modifier = Modifier
+                        .clip(RoundedCornerShape(8.dp))
+                        .background(if (selected) BrandRose.copy(alpha = 0.14f) else palette.surface)
+                        .border(
+                            width = 0.75.dp,
+                            color = if (selected) BrandRose.copy(alpha = 0.5f) else palette.border,
+                            shape = RoundedCornerShape(8.dp)
+                        )
+                        .clickable { onSelectQuickFilter(filter) }
+                        .padding(horizontal = 10.dp, vertical = 5.dp)
+                ) {
+                    Text(
+                        text = label,
+                        style = MaterialTheme.typography.labelSmall,
+                        color = if (selected) BrandRose else palette.textSecondary,
+                        fontWeight = if (selected) FontWeight.SemiBold else FontWeight.Normal
                     )
                 }
             }
@@ -476,7 +525,8 @@ fun ConnectionsScreen(
                     onUpdateTagAndNote(sheetAccount.username, tag, note)
                 },
                 onOpenInstagram = { openInstagramProfile(context, sheetAccount.username) },
-                onMarkUnfollowed = { onMarkUnfollowed(sheetAccount.username) }
+                onMarkUnfollowed = { onMarkUnfollowed(sheetAccount.username) },
+                onShowMessage = onShowMessage
             )
         }
     }
@@ -706,10 +756,13 @@ private fun AccountDetailSheetContent(
     onToggleWhitelist: () -> Unit,
     onSaveTagAndNote: (String, String) -> Unit,
     onOpenInstagram: () -> Unit,
-    onMarkUnfollowed: () -> Unit
+    onMarkUnfollowed: () -> Unit,
+    onShowMessage: (String) -> Unit
 ) {
     val palette = LocalInstallowPalette.current
     val strings = LocalAppStrings.current
+    @Suppress("DEPRECATION")
+    val clipboardManager = LocalClipboardManager.current
     var selectedTag by remember(account.username) { mutableStateOf(account.customTag) }
     var noteText by remember(account.username) { mutableStateOf(account.customNote) }
 
@@ -731,11 +784,28 @@ private fun AccountDetailSheetContent(
                     style = MaterialTheme.typography.titleLarge,
                     color = palette.textPrimary
                 )
-                Text(
-                    text = "@${account.username}",
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = palette.textSecondary
-                )
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(6.dp),
+                    modifier = Modifier.clickable {
+                        clipboardManager.setText(AnnotatedString("@${account.username}"))
+                        onShowMessage(
+                            String.format(Locale.ROOT, strings.usernameCopiedMsgFormat, account.username)
+                        )
+                    }
+                ) {
+                    Text(
+                        text = "@${account.username}",
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = palette.textSecondary
+                    )
+                    Icon(
+                        imageVector = Icons.Rounded.ContentCopy,
+                        contentDescription = strings.copyUsernameDesc,
+                        tint = palette.textMuted,
+                        modifier = Modifier.size(14.dp)
+                    )
+                }
                 Spacer(modifier = Modifier.height(6.dp))
                 Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
                     CategoryBadge(account.category)
