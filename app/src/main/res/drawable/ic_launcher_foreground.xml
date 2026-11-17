@@ -1,0 +1,57 @@
+<?xml version="1.0" encoding="utf-8"?>
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:aapt="http://schemas.android.com/aapt"
+    android:width="108dp"
+    android:height="108dp"
+    android:viewportWidth="108"
+    android:viewportHeight="108">
+    <path
+        android:pathData="M54,24C70.57,24 84,37.43 84,54C84,70.57 70.57,84 54,84C37.43,84 24,70.57 24,54C24,37.43 37.43,24 54,24Z"
+        android:strokeWidth="4.5">
+        <aapt:attr name="android:strokeColor">
+            <gradient
+                android:endX="84"
+                android:endY="84"
+                android:startX="24"
+                android:startY="24"
+                android:type="linear">
+                <item
+                    android:color="#FF8B5CF6"
+                    android:offset="0" />
+                <item
+                    android:color="#FFEC4899"
+                    android:offset="0.5" />
+                <item
+                    android:color="#FFF59E0B"
+                    android:offset="1" />
+            </gradient>
+        </aapt:attr>
+    </path>
+    <path
+        android:fillColor="#FFFFFFFF"
+        android:pathData="M43,38L49,38L49,64L43,64Z" />
+    <path
+        android:pathData="M55,44L61,38L67,44L61,50Z">
+        <aapt:attr name="android:fillColor">
+            <gradient
+                android:endX="67"
+                android:endY="50"
+                android:startX="55"
+                android:startY="38"
+                android:type="linear">
+                <item
+                    android:color="#FF06B6D4"
+                    android:offset="0" />
+                <item
+                    android:color="#FFEC4899"
+                    android:offset="1" />
+            </gradient>
+        </aapt:attr>
+    </path>
+    <path
+        android:fillColor="#FFFFFFFF"
+        android:pathData="M57,51L65,51L65,64L57,64Z" />
+    <path
+        android:fillColor="#FF10B981"
+        android:pathData="M43,68L65,68L65,71.5L43,71.5Z" />
+</vector>
