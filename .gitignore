@@ -1,22 +1,42 @@
-# Gradle / Android build artifacts
+# Gradle & Android build artifacts
 .gradle/
 .kotlin/
 build/
-app/build/
+**/build/
 captures/
+.cxx/
+.externalNativeBuild/
+.navigation/
 *.apk
 *.ap_
 *.aab
 *.dex
+*.hprof
 
-# Local configuration & secrets
+# Local configuration, signing & secrets
 local.properties
+keystore.properties
+signing.properties
 *.jks
 *.keystore
+*.p12
+*.pem
+.env
+.env.*
 
-# IDE & OS files
+# Personal Instagram export files (privacy protection)
+*.zip
+followers*.json
+following*.json
+
+# IDE, OS & temporary files
 .idea/
+.vscode/
 *.iml
 .DS_Store
 Thumbs.db
+[Dd]esktop.ini
 *.lnk
+*.log
+*.tmp
+*.bak
