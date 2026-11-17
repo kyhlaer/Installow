@@ -1,44 +1,51 @@
 # 🕵🏻 Installow - by Kyhlaer
 
-**by kyhlaer** · Sürüm `1.33`
+**Sürüm `1.33`** · Gizlilik odaklı, modern ve güvenli Instagram takip analiz Android uygulaması.
 
-Instagram takipçi ve takip edilen analizini gizlilik odaklı, modern ve güvenli bir arayüzle cihaz üzerinde gerçekleştiren Android (Jetpack Compose) uygulaması.
+> 📲 **İndir:** Hazır APK dosyası için [Releases (v1.33)](https://github.com/kyhlaer/Installow/releases/tag/v1.33) sayfasını ziyaret edebilirsiniz.
+
+---
 
 ## ✨ Özellikler
 
-- **Detaylı Takip Analizi:** Seni takip etmeyenler, senin takip etmediklerin (hayranlar), karşılıklı takipleştiklerin, bekleyen istekler ve beyaz liste kategorileri.
-- **Zaman İçindeki Değişimler:** Farklı tarihlerdeki veri kayıtlarını karşılaştırarak takipten çıkanları ve yeni takipçileri tespit eder.
-- **Arama ve Gelişmiş Sıralama:** Kullanıcı adı, görünen ad, etiket ve notlarda arama; en yeni/eski tarih, takipçi sayısı (çoktan aza / azdan çoğa) ve A-Z / Z-A sıralama.
-- **Sıralı İnceleme Kuyruğu:** Beyaz liste dışı hesapları sırayla inceleme, Instagram profilini açma, beyaz listeye ekleme veya yerel olarak işaretleme.
-- **Çift Veri Kaynağı:**
-  - **Resmi Instagram Arşivi (Sıfır Risk):** Meta veri indirme merkezinden alınan ZIP / JSON / HTML dosyalarını tamamen çevrimdışı analiz eder.
-  - **Canlı Web Senkronizasyonu (Yavaş Mod):** İstekler arası gecikme, mola, 15 dk soğuma koruması ve hız uyarısında otomatik 60 dk kilitleme ile salt-okunur senkronizasyon.
-- **Kişiselleştirilebilir Tema & Dil:** Koyu, Açık ve Sistem varsayılanı tema seçenekleri; **Türkçe / English / Sistem** dil seçimi; sekmeler arası yatay kaydırma desteği.
+- 👥 **Kapsamlı Bağlantı Analizi:** Seni takip etmeyenler, senin takip etmediklerin (hayranlar), karşılıklı takipler, bekleyen istekler ve beyaz liste tek ekranda.
+- 📈 **Zaman İçindeki Değişimler:** Kaydedilen verileri karşılaştırarak **takipten çıkanları** ve **yeni takipçileri** otomatik listeler; son 6 aylık aktivite grafiği ve öne çıkan tarihleri sunar.
+- 🔍 **Arama, Sıralama & Notlar:** Kullanıcı adı, isim, özel etiket veya notlarda anlık arama; tarihe, takipçi sayısına ve alfabetik (A-Z / Z-A) sıraya göre filtreleme.
+- 🎯 **Sıralı İnceleme Kuyruğu:** Beyaz liste dışındaki hesapları sırayla gözden geçirin, tek dokunuşla Instagram profilini açın, beyaz listeye alın veya yerel olarak işaretleyin.
+- 🗂️ **Çift Veri Kaynağı:**
+  - 📦 **Resmi Instagram Arşivi (Sıfır Risk):** Meta'dan indirilen ZIP / JSON / HTML dosyalarını tamamen cihaz içinde ve çevrimdışı analiz eder.
+  - 🌐 **Canlı Web Senkronizasyonu (Yavaş Mod):** Uygulama içi tarayıcı üzerinden beklemeli, molalı ve 15 dk soğuma korumalı salt-okunur senkronizasyon yapar.
+- 🎨 **Tema, Dil & Akıcı Arayüz:** **Koyu / Açık / Sistem** teması, **Türkçe / English / Sistem** dil seçeneği, sekmeler arası yatay kaydırma, CSV rapor paylaşımı ve uygulama içi sürüm notları.
 
-## Siber Güvenlik ve Gizlilik Önlemleri
+---
 
-- **Yerel AES-256-GCM Şifreleme:** Uygulama verileri Android Keystore donanım destekli `AES/GCM/NoPadding` anahtarıyla şifrelenerek saklanır (`allowBackup="false"`).
-- **Ağ ve WebView Sertleştirmesi:** Uygulama genelinde şifresiz HTTP (`cleartext`) trafiği kapalıdır. WebView yalnızca `https://` üzerinden `instagram.com`, `facebook.com` ve `meta.com` alan adlarına izin verir; SSL hatalarında bağlantıyı iptal eder ve giriş sırasında `FLAG_SECURE` ekran korumasını etkinleştirir.
-- **JS Köprüsü Koruması:** `@JavascriptInterface` çağrıları oturumluk 256-bit `SecureRandom` token ve sabit zamanlı doğrulama ile korunur.
-- **Arşiv & CSV Koruması:** Akışlı (`PushbackInputStream`) okuma, Zip Slip yol geçişi engelleme, ZIP boyutu/girdi sınırları ve CSV formül enjeksiyonu (`=`, `+`, `-`, `@`, `|`, `%`) nötralizasyonu içerir.
+## 🛡️ Siber Güvenlik & Gizlilik
 
-## Derleme ve Test
+- 🔐 **AES-256-GCM Şifreleme:** Tüm yerel kayıtlar Android Keystore donanım anahtarıyla şifrelenerek saklanır (`allowBackup="false"`).
+- 🔒 **Sertleştirilmiş WebView & Ağ:** Şifresiz HTTP (`cleartext`) kapalıdır; yalnızca `https://` üzerinden doğrulanmış Instagram / Meta alan adlarına izin verilir.
+- 📵 **Ekran & Köprü Koruması:** Giriş sırasında `FLAG_SECURE` ekran görüntüsü kilidi ve 256-bit Nonce doğrulamalı JS köprüsü aktiftir; SSL hatalarında bağlantı anında kesilir.
+- 🧱 **Arşiv & Veri Koruması:** Akışlı okuma, Zip Slip engeli, ZIP bombası limitleri, CSV formül enjeksiyonu nötralizasyonu ve uygulama içi **Güvenlik Testini Çalıştır** öz-denetimi bulunur.
 
-- Minimum SDK: `26` (Android 8.0) · Target/Compile SDK: `35`
-- Dil & Arayüz: Kotlin `2.0.21`, Jetpack Compose, Material 3
+---
+
+## 🛠️ Teknik Bilgiler & Derleme
+
+- **Platform:** Android `8.0+` (`minSdk 26` · `targetSdk 35`)
+- **Teknoloji:** Kotlin `2.0.21` · Jetpack Compose · Material 3 · R8 Optimizasyonu
 
 ```bash
 # Birim güvenlik testlerini çalıştır
 ./gradlew testDebugUnitTest
 
-# Optimize edilmiş (R8 + kaynak sıkıştırmalı) Release APK derle
+# Optimize edilmiş Release APK derle
 ./gradlew assembleRelease
 ```
 
-## Güncelleme Notları (Release Notes)
+---
 
-Detaylı sürüm geçmişi için [CHANGELOG.md](CHANGELOG.md) dosyasına bakabilirsiniz.
+## 📝 Sürüm Notları
 
-- **v1.33:** Tam İngilizce/Türkçe/Sistem dil desteği (`LanguagePreference`, anlık `Dil / Language` seçicisi), yerel dil uyumlu tarih/takipçi/grafik/CSV formatları, uygulama içi Sürüm Notları diyaloğu.
-- **v1.32:** `Installow by kyhlaer` açılış ekranı, Android Keystore AES-256-GCM yerel şifreleme, sıkılaştırılmış WebView & 256-bit Nonce JS köprüsü, `FLAG_SECURE`, Zip Slip/ZIP bombası/CSV enjeksiyon korumaları ve R8 optimizasyonu.
+Tüm değişikliklerin ayrıntıları için [CHANGELOG.md](CHANGELOG.md) dosyasına göz atabilirsiniz.
 
+- 🆕 **v1.33:** Tam **İngilizce / Türkçe / Sistem** dil seçeneği, yerel formata uyumlu sayı/tarih/grafik/CSV çıktıları ve uygulama içi Sürüm Notları penceresi.
+- 🚀 **v1.32:** **Installow by kyhlaer** açılış ekranı, AES-256-GCM Keystore şifreleme, WebView & Zip/CSV güvenlik kalkanı, canlı güvenlik testi ve R8 APK küçültme.
